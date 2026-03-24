@@ -6,7 +6,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace clawshell {
+namespace clawspan {
 namespace capability {
 namespace ax {
 
@@ -308,4 +308,4 @@ std::string AXTextSerializer::serialize(const AXElement& root,
 
 } // namespace ax
 } // namespace capability
-} // namespace clawshell
+} // namespace clawspan

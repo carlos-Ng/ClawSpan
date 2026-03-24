@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 // ModuleSpec 描述一个模块的加载规格，由 daemon 解析 TOML 后填充，
@@ -42,4 +42,4 @@ struct CoreConfig
 };
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

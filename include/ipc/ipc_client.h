@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 
 // IpcClientInterface：Channel 1 IPC 客户端抽象接口（供 OpenClaw 插件调用）。
@@ -88,4 +88,4 @@ public:
 };
 
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan

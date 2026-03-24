@@ -1,6 +1,6 @@
 using System;
 
-namespace ClawShellUI.Models
+namespace ClawSpanUI.Models
 {
 
 // OperationRecord 表示一次操作的执行记录，用于操作日志展示。
@@ -28,4 +28,4 @@ public class OperationRecord
 	public bool IsAllowed => !IsDenied;
 }
 
-} // namespace ClawShellUI.Models
+} // namespace ClawSpanUI.Models

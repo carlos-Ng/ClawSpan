@@ -6,7 +6,7 @@ add_executable(common_tests
 )
 
 target_link_libraries(common_tests PRIVATE
-    clawshell_headers
+    clawspan_headers
     GTest::gtest
     GTest::gtest_main
 )

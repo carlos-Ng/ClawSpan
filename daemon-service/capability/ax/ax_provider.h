@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace capability {
 namespace ax {
 
@@ -190,4 +190,4 @@ public:
 
 } // namespace ax
 } // namespace capability
-} // namespace clawshell
+} // namespace clawspan

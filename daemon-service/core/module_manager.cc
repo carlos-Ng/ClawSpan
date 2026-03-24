@@ -12,7 +12,7 @@
 #  error "Platform not supported: add POSIX dlfcn.h implementation here"
 #endif
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 // ─── 平台辅助：动态库加载/卸载 ───────────────────────────────────────────────
@@ -244,4 +244,4 @@ void ModuleManager::release()
 }
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

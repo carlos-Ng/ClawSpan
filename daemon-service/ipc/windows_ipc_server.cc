@@ -21,7 +21,7 @@
 
 #include "pipe_security.h"
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 
 // ─── 协议辅助 ────────────────────────────────────────────────────────────────
@@ -504,4 +504,4 @@ void WindowsIpcServer::stop()
 }
 
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan

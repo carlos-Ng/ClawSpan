@@ -6,7 +6,7 @@
 #  error "Platform not supported: add POSIX fd-based implementation using unistd.h here"
 #endif
 
-namespace clawshell {
+namespace clawspan {
 
 // SafeHandle Windows HANDLE 的 RAII 包装，对应 POSIX SafeFd。
 //
@@ -66,5 +66,5 @@ private:
 	HANDLE handle_;
 };
 
-} // namespace clawshell
+} // namespace clawspan
 

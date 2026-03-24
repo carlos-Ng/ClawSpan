@@ -23,7 +23,7 @@ if(WIN32)
     target_sources(capability_ax PRIVATE ax_provider_windows.cc)
     target_compile_options(capability_ax PRIVATE /W4 /WX-)
     target_link_libraries(capability_ax PRIVATE
-        clawshell_core
+        clawspan_core
         uiautomationcore
         ole32
         oleaut32
@@ -33,7 +33,7 @@ endif()
 
 set_target_properties(capability_ax PROPERTIES
     OUTPUT_NAME  "capability_ax"
-    # 输出到 build/daemon-service/，与 clawshell.toml 中 module_dir = "build/daemon-service" 一致。
+    # 输出到 build/daemon-service/，与 clawspan.toml 中 module_dir = "build/daemon-service" 一致。
     # 显式设置各配置的输出目录，防止 MSVC 多配置生成器自动追加 Debug/ / Release/ 子目录。
     LIBRARY_OUTPUT_DIRECTORY                "${CMAKE_BINARY_DIR}/daemon-service"
     RUNTIME_OUTPUT_DIRECTORY                "${CMAKE_BINARY_DIR}/daemon-service"

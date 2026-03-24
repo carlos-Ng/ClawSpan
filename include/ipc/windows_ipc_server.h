@@ -5,7 +5,7 @@
 #include <functional>
 #include <memory>
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 
 // WindowsIpcServer 是 IpcServerInterface 的 Windows Named Pipe 实现。
@@ -42,4 +42,4 @@ private:
 };
 
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan

@@ -2,7 +2,7 @@
 #
 # SecurityFilter is normally built as a shared library (DLL).
 # For testing, we compile security_filter.cc directly into the test executable.
-# The CLAWSHELL_MODULE_EXPORT macro at the end of the .cc file generates a
+# The CLAWSPAN_MODULE_EXPORT macro at the end of the .cc file generates a
 # GetModuleInstance factory function, which is harmless in a static link context.
 
 add_executable(security_filter_tests
@@ -15,8 +15,8 @@ target_include_directories(security_filter_tests PRIVATE
 )
 
 target_link_libraries(security_filter_tests PRIVATE
-    clawshell_core
-    clawshell_headers
+    clawspan_core
+    clawspan_headers
     GTest::gtest
     GTest::gtest_main
 )

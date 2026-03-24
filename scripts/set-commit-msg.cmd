@@ -1,2 +1,2 @@
 @echo off
-copy /Y "c:\Users\polymorphours\ClawShell\new-msg.txt" "%~1" >nul
+copy /Y "c:\Users\polymorphours\ClawSpan\new-msg.txt" "%~1" >nul

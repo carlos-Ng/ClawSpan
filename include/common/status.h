@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 
-namespace clawshell {
+namespace clawspan {
 
 // Status 携带操作结果码与可选的附加说明。
 //
@@ -177,4 +177,4 @@ constexpr const char* statusMessage(Status::Code code) noexcept
 	return "unknown";
 }
 
-} // namespace clawshell
+} // namespace clawspan

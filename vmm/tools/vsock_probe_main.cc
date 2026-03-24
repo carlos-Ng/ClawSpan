@@ -67,7 +67,7 @@ bool launchWslClient(const std::string& distro, uint32_t port)
 	std::snprintf(
 	    cmd, sizeof(cmd),
 	    "wsl.exe -d \"%s\" -- python3 -c \"import socket; s=socket.socket(socket.AF_VSOCK, socket.SOCK_STREAM); "
-	    "s.settimeout(5); s.connect((2,%u)); s.sendall(b'clawshell-vsock-probe'); s.close()\"",
+	    "s.settimeout(5); s.connect((2,%u)); s.sendall(b'clawspan-vsock-probe'); s.close()\"",
 	    distro.c_str(), port);
 
 	STARTUPINFOA si{};
@@ -126,7 +126,7 @@ int runProbe(BindMode mode, uint32_t port, uint32_t timeout_ms,
 		spdlog::info("bind mode: HV_GUID_WILDCARD");
 	} else {
 		GUID runtime_id{};
-		if (!clawshell::vmm::discoverWsl2VmId(&runtime_id)) {
+		if (!clawspan::vmm::discoverWsl2VmId(&runtime_id)) {
 			spdlog::error("discoverWsl2VmId failed (this usually requires admin privilege)");
 			::closesocket(listen_sock);
 			::WSACleanup();
@@ -202,14 +202,14 @@ int runProbe(BindMode mode, uint32_t port, uint32_t timeout_ms,
 
 int main(int argc, char** argv)
 {
-	cxxopts::Options opts("clawshell_vsock_probe", "Validate ClawShell scheme D vsock binding");
+	cxxopts::Options opts("clawspan_vsock_probe", "Validate ClawSpan scheme D vsock binding");
 	opts.add_options()
 	    ("mode", "bind mode: children | runtimeid | wildcard",
 	     cxxopts::value<std::string>()->default_value("children"))
 	    ("port", "vsock port", cxxopts::value<uint32_t>()->default_value("100"))
 	    ("timeout-ms", "accept timeout ms", cxxopts::value<uint32_t>()->default_value("10000"))
 	    ("distro", "WSL distro used by auto probe client",
-	     cxxopts::value<std::string>()->default_value("ClawShell"))
+	     cxxopts::value<std::string>()->default_value("ClawSpan"))
 	    ("no-wsl-client", "do not auto launch WSL client")
 	    ("check-registry", "check GCS registry entry before bind")
 	    ("h,help", "show help");

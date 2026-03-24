@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ClawShellUI.Channel
+namespace ClawSpanUI.Channel
 {
 
 // Channel 2 所有消息类型定义（Daemon ↔ UI 双向通信协议）
@@ -141,4 +141,4 @@ public class ConfirmResponse
 	public bool TrustFingerprint { get; set; }
 }
 
-} // namespace ClawShellUI.Channel
+} // namespace ClawSpanUI.Channel

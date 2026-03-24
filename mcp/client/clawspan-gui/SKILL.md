@@ -1,6 +1,6 @@
 ---
-name: clawshell-gui
-description: "Windows GUI automation via ClawShell MCP Server. Use when: (1) listing or inspecting visible windows on the Windows host, (2) clicking, double-clicking, or right-clicking UI elements, (3) typing text into input fields or sending keystrokes, (4) activating, focusing, minimizing, or dragging windows, (5) scrolling within controls, (6) reading UI control trees for accessibility inspection, (7) capturing system info or screen coordinates, (8) executing programs on the Windows host, (9) writing files on the host filesystem. NOT for: Linux/macOS GUI operations, web browser automation (use browser tooling), or tasks that don't involve the Windows desktop."
+name: clawspan-gui
+description: "Windows GUI automation via ClawSpan MCP Server. Use when: (1) listing or inspecting visible windows on the Windows host, (2) clicking, double-clicking, or right-clicking UI elements, (3) typing text into input fields or sending keystrokes, (4) activating, focusing, minimizing, or dragging windows, (5) scrolling within controls, (6) reading UI control trees for accessibility inspection, (7) capturing system info or screen coordinates, (8) executing programs on the Windows host, (9) writing files on the host filesystem. NOT for: Linux/macOS GUI operations, web browser automation (use browser tooling), or tasks that don't involve the Windows desktop."
 metadata:
   {
     "openclaw":
@@ -12,15 +12,15 @@ metadata:
   }
 ---
 
-# ClawShell GUI Skill
+# ClawSpan GUI Skill
 
-Control the Windows host desktop from inside the WSL2 VM via ClawShell's MCP tools.
-All GUI operations are sent through AF_VSOCK to the ClawShell daemon running on the host,
+Control the Windows host desktop from inside the WSL2 VM via ClawSpan's MCP tools.
+All GUI operations are sent through AF_VSOCK to the ClawSpan daemon running on the host,
 which routes them to the `ax` capability plugin for execution.
 
 ## Setup
 
-The ClawShell MCP Server must be registered in OpenClaw's acpx plugin config.
+The ClawSpan MCP Server must be registered in OpenClaw's acpx plugin config.
 Add to `~/.openclaw/openclaw.json`:
 
 ```json
@@ -30,9 +30,9 @@ Add to `~/.openclaw/openclaw.json`:
       "acpx": {
         "config": {
           "mcpServers": {
-            "clawshell-gui": {
+            "clawspan-gui": {
               "command": "python3",
-              "args": ["/path/to/clawshell/mcp/server/mcp_server.py"]
+              "args": ["/path/to/clawspan/mcp/server/mcp_server.py"]
             }
           }
         }
@@ -42,7 +42,7 @@ Add to `~/.openclaw/openclaw.json`:
 }
 ```
 
-The host-side ClawShell daemon must be running and the vsock server listening on port 100.
+The host-side ClawSpan daemon must be running and the vsock server listening on port 100.
 
 ## Available Tools
 

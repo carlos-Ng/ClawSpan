@@ -6,7 +6,7 @@
 #include <utility>
 #include <tl/expected.hpp>
 
-namespace clawshell {
+namespace clawspan {
 
 template <typename T>
 class [[nodiscard]] Result
@@ -356,4 +356,4 @@ private:
 	ExpectedType expected_;
 };
 
-} // namespace clawshell
+} // namespace clawspan

@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace clawshell {
+namespace clawspan {
 namespace capability {
 namespace ax {
 
@@ -95,4 +95,4 @@ private:
 
 } // namespace ax
 } // namespace capability
-} // namespace clawshell
+} // namespace clawspan

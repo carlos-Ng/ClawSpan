@@ -15,7 +15,7 @@
 #  error "Platform not supported"
 #endif
 
-namespace clawshell {
+namespace clawspan {
 namespace vmm {
 
 // ─── g_vmm_shutdown_event ──────────────────────────────────────────────────
@@ -337,4 +337,4 @@ void VmmApp::stop()
 }
 
 } // namespace vmm
-} // namespace clawshell
+} // namespace clawspan

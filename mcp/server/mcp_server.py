@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-mcp_server.py -- ClawShell GUI MCP Server（MCP 标准协议，运行在 VM 内）
+mcp_server.py -- ClawSpan GUI MCP Server（MCP 标准协议，运行在 VM 内）
 
 通过 stdin/stdout 实现 MCP (Model Context Protocol) 标准 JSON-RPC 2.0 接口。
 由 OpenClaw 的 acpx 扩展以 stdio 子进程方式启动。
 
-所有 GUI 操作通过 AF_VSOCK + ClawShell FrameCodec 发送到宿主机 daemon，
+所有 GUI 操作通过 AF_VSOCK + ClawSpan FrameCodec 发送到宿主机 daemon，
 由 CapabilityService 路由到具体插件（如 ax）执行。
 
 MCP 协议方法：
@@ -34,7 +34,7 @@ MCP_PROTOCOL_VERSION = "2024-11-05"
 
 # 服务端信息
 SERVER_INFO = {
-    "name": "clawshell-gui",
+    "name": "clawspan-gui",
     "version": "0.1.1",
 }
 

@@ -11,7 +11,7 @@
 
 #include <string>
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 namespace {
 
@@ -150,4 +150,4 @@ TEST(UIMessageFactoryUnicode, SpecialCharsInDetail)
 
 } // namespace
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan

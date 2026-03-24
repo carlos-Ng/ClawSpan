@@ -3,9 +3,9 @@ using System.Drawing;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
-using ClawShellUI.Channel;
+using ClawSpanUI.Channel;
 
-namespace ClawShellUI.Forms
+namespace ClawSpanUI.Forms
 {
 
 // ConfirmDialog 是操作确认弹窗，以模态阻断方式显示。
@@ -353,4 +353,4 @@ public class ConfirmDialog : Form
 	}
 }
 
-} // namespace ClawShellUI.Forms
+} // namespace ClawSpanUI.Forms

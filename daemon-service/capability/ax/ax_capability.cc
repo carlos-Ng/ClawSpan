@@ -12,7 +12,7 @@
 #include <functional>
 #include <memory>
 
-namespace clawshell {
+namespace clawspan {
 namespace capability {
 namespace ax {
 
@@ -377,7 +377,7 @@ Result<nlohmann::json> AXCapability::execute(std::string_view      operation,
 
 } // namespace ax
 } // namespace capability
-} // namespace clawshell
+} // namespace clawspan
 
 // 导出工厂函数，供 ModuleManager 动态加载（Phase 3）或直接调用（Phase 1 静态链接）。
-CLAWSHELL_MODULE_EXPORT(clawshell::capability::ax::AXCapability)
+CLAWSPAN_MODULE_EXPORT(clawspan::capability::ax::AXCapability)

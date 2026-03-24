@@ -20,12 +20,12 @@
 #include <algorithm>
 #include <string>
 
-namespace clawshell {
+namespace clawspan {
 namespace vmm {
 namespace {
 
 // 集成测试使用的 distro 名称，加 _test 后缀避免与真实 distro 冲突
-static const std::wstring kTestDistroName = L"clawshell-vmm-test";
+static const std::wstring kTestDistroName = L"clawspan-vmm-test";
 
 // ── 工厂函数 ────────────────────────────────────────────────────────────────
 
@@ -112,7 +112,7 @@ TEST_F(VMManagerQueryTest, SnapshotNonExistentDistroReturnsNotFound)
 // ── 生命周期集成测试（需要 WSL2 + rootfs tarball）────────────────────────────
 //
 // 默认 DISABLED，通过 --gtest_also_run_disabled_tests 手动启用。
-// 需要环境变量 CLAWSHELL_TEST_ROOTFS 指向 Ubuntu rootfs .tar.gz 文件。
+// 需要环境变量 CLAWSPAN_TEST_ROOTFS 指向 Ubuntu rootfs .tar.gz 文件。
 
 class DISABLED_VMManagerLifecycleTest : public ::testing::Test
 {
@@ -126,9 +126,9 @@ protected:
 		mgr_->destroyDistro(kTestDistroName);
 
 		// 获取 rootfs 路径
-		const char* rootfs = std::getenv("CLAWSHELL_TEST_ROOTFS");
+		const char* rootfs = std::getenv("CLAWSPAN_TEST_ROOTFS");
 		if (!rootfs || std::string(rootfs).empty()) {
-			GTEST_SKIP() << "CLAWSHELL_TEST_ROOTFS not set, skipping lifecycle test";
+			GTEST_SKIP() << "CLAWSPAN_TEST_ROOTFS not set, skipping lifecycle test";
 		}
 		rootfs_path_ = std::wstring(rootfs, rootfs + std::strlen(rootfs));
 	}
@@ -206,7 +206,7 @@ TEST_F(DISABLED_VMManagerLifecycleTest, SnapshotAndRestore)
 
 	// 快照
 	std::wstring out_path;
-	st = mgr_->snapshotDistro(kTestDistroName, L"C:\\Temp\\clawshell-test",
+	st = mgr_->snapshotDistro(kTestDistroName, L"C:\\Temp\\clawspan-test",
 	                           L"test-snapshot", out_path);
 	ASSERT_TRUE(st.ok()) << "snapshotDistro failed: " << st.message;
 	EXPECT_FALSE(out_path.empty());
@@ -268,4 +268,4 @@ TEST_F(DISABLED_VMManagerLifecycleTest, ListDistrosContainsCreated)
 
 } // namespace
 } // namespace vmm
-} // namespace clawshell
+} // namespace clawspan

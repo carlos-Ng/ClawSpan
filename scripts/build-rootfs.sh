@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# build-rootfs.sh — ClawShell VM rootfs 构建工具
+# build-rootfs.sh — ClawSpan VM rootfs 构建工具
 #
-# 在 WSL2 内构建 Debian bookworm rootfs，预装 OpenClaw + ClawShell MCP Server。
+# 在 WSL2 内构建 Debian bookworm rootfs，预装 OpenClaw + ClawSpan MCP Server。
 # 生成的 tar.gz 可直接用于 wsl --import。
 #
 # 支持断点续建：每个阶段完成后保存 checkpoint（仅保留最近一个），
@@ -17,14 +17,14 @@ VERSION="1.0.0"
 
 SUITE="bookworm"
 MIRROR="https://deb.debian.org/debian"
-ROOTFS_DIR="/tmp/clawshell-rootfs"
-OUTPUT="$(pwd)/clawshell-rootfs.tar.gz"
+ROOTFS_DIR="/tmp/clawspan-rootfs"
+OUTPUT="$(pwd)/clawspan-rootfs.tar.gz"
 NODE_MAJOR=22
-CLAWSHELL_USER="clawshell"
-MCP_INSTALL_DIR="/opt/clawshell/mcp"
+CLAWSPAN_USER="clawspan"
+MCP_INSTALL_DIR="/opt/clawspan/mcp"
 
 # 持久缓存目录
-CACHE_DIR="/var/cache/clawshell-build"
+CACHE_DIR="/var/cache/clawspan-build"
 APT_CACHE_DIR="$CACHE_DIR/apt-archives"
 DEB_TARBALL="$CACHE_DIR/debootstrap-debs.tar"
 
@@ -35,9 +35,9 @@ CHECKPOINT_STAGE_FILE="$CACHE_DIR/checkpoint.stage"
 # debootstrap --include
 DEBOOTSTRAP_INCLUDE="systemd,systemd-sysv,dbus,dbus-user-session,libpam-systemd,ca-certificates,curl,wget,gnupg,git,locales,procps,iproute2,iputils-ping,less,vim-tiny,sudo"
 
-# ClawShell 源码目录
+# ClawSpan 源码目录
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CLAWSHELL_SRC=""
+CLAWSPAN_SRC=""
 
 TOTAL_STAGES=7
 
@@ -47,7 +47,7 @@ show_help() {
     cat <<'HELP'
 用法: sudo ./build-rootfs.sh [命令] [选项]
 
-构建 ClawShell VM rootfs（Debian bookworm + OpenClaw + MCP Server）。
+构建 ClawSpan VM rootfs（Debian bookworm + OpenClaw + MCP Server）。
 
 命令（互斥，默认为构建）:
   (无)                 构建 rootfs（支持断点续建）
@@ -57,9 +57,9 @@ show_help() {
   --help               显示此帮助信息
 
 构建选项:
-  --src DIR            指定 ClawShell 源码目录（含 mcp/、scripts/）
-                       默认自动检测脚本所在位置或 /mnt/c/Users/*/ClawShell
-  -o, --output FILE    指定输出文件路径（默认: 当前目录/clawshell-rootfs.tar.gz）
+  --src DIR            指定 ClawSpan 源码目录（含 mcp/、scripts/）
+                       默认自动检测脚本所在位置或 /mnt/c/Users/*/ClawSpan
+  -o, --output FILE    指定输出文件路径（默认: 当前目录/clawspan-rootfs.tar.gz）
 
 构建阶段:
   1  debootstrap       创建 Debian 基础系统（预下载 deb 包，离线安装）
@@ -67,7 +67,7 @@ show_help() {
   3  Python 3          python3 + pip + venv
   4  Node.js + pnpm    Node.js 22 + corepack + pnpm
   5  OpenClaw          pnpm 全局安装 openclaw
-  6  ClawShell MCP     部署 MCP Server + OpenClaw skill + 用户配置
+  6  ClawSpan MCP     部署 MCP Server + OpenClaw skill + 用户配置
   7  瘦身              清理缓存、文档、日志
 
 断点续建:
@@ -77,7 +77,7 @@ show_help() {
 
 示例:
   sudo ./build-rootfs.sh                                    # 构建（断点续建）
-  sudo ./build-rootfs.sh --src /mnt/c/Users/me/ClawShell    # 指定源码目录
+  sudo ./build-rootfs.sh --src /mnt/c/Users/me/ClawSpan    # 指定源码目录
   sudo ./build-rootfs.sh -o /mnt/c/rootfs.tar.gz            # 指定输出路径
   sudo ./build-rootfs.sh --rebuild                          # 全部重来
   sudo ./build-rootfs.sh --clean                            # 清除缓存
@@ -108,7 +108,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --src)
-            CLAWSHELL_SRC="$2"
+            CLAWSPAN_SRC="$2"
             shift 2
             ;;
         -o|--output)
@@ -175,7 +175,7 @@ clean_download_cache() {
 
 show_status() {
     echo ""
-    echo "ClawShell rootfs 构建状态"
+    echo "ClawSpan rootfs 构建状态"
     echo "────────────────────────────────────────"
 
     # checkpoint
@@ -297,37 +297,37 @@ if [[ ${#MISSING_TOOLS[@]} -gt 0 ]]; then
     fi
 fi
 
-# 3. ClawShell 源码目录
-if [[ -z "$CLAWSHELL_SRC" ]]; then
+# 3. ClawSpan 源码目录
+if [[ -z "$CLAWSPAN_SRC" ]]; then
     _auto="$(dirname "$SCRIPT_DIR")"
     if [[ -f "$_auto/mcp/server/mcp_server.py" ]]; then
-        CLAWSHELL_SRC="$_auto"
+        CLAWSPAN_SRC="$_auto"
     fi
 fi
 
-if [[ -z "$CLAWSHELL_SRC" || ! -f "$CLAWSHELL_SRC/mcp/server/mcp_server.py" ]]; then
-    for _try in /mnt/c/Users/*/ClawShell /mnt/d/ClawShell /mnt/c/ClawShell; do
+if [[ -z "$CLAWSPAN_SRC" || ! -f "$CLAWSPAN_SRC/mcp/server/mcp_server.py" ]]; then
+    for _try in /mnt/c/Users/*/ClawSpan /mnt/d/ClawSpan /mnt/c/ClawSpan; do
         # shellcheck disable=SC2086
         for _dir in $_try; do
             if [[ -f "$_dir/mcp/server/mcp_server.py" ]]; then
-                CLAWSHELL_SRC="$_dir"
+                CLAWSPAN_SRC="$_dir"
                 break 2
             fi
         done
     done
 fi
 
-if [[ -z "$CLAWSHELL_SRC" || ! -d "$CLAWSHELL_SRC" ]]; then
-    echo "  ✗ ClawShell 源码目录未找到"
-    PREFLIGHT_ERRORS+=("请用 --src 指定源码目录: sudo $0 --src /mnt/c/Users/你的用户名/ClawShell")
+if [[ -z "$CLAWSPAN_SRC" || ! -d "$CLAWSPAN_SRC" ]]; then
+    echo "  ✗ ClawSpan 源码目录未找到"
+    PREFLIGHT_ERRORS+=("请用 --src 指定源码目录: sudo $0 --src /mnt/c/Users/你的用户名/ClawSpan")
 else
-    echo "  ✓ 源码目录: $CLAWSHELL_SRC"
-    for _sf in mcp/server/mcp_server.py mcp/server/vsock_client.py mcp/client/clawshell-gui/SKILL.md; do
-        if [[ -f "$CLAWSHELL_SRC/$_sf" ]]; then
+    echo "  ✓ 源码目录: $CLAWSPAN_SRC"
+    for _sf in mcp/server/mcp_server.py mcp/server/vsock_client.py mcp/client/clawspan-gui/SKILL.md; do
+        if [[ -f "$CLAWSPAN_SRC/$_sf" ]]; then
             echo "  ✓ $_sf"
         else
             echo "  ✗ $_sf"
-            PREFLIGHT_ERRORS+=("源码文件缺失: $CLAWSHELL_SRC/$_sf")
+            PREFLIGHT_ERRORS+=("源码文件缺失: $CLAWSPAN_SRC/$_sf")
         fi
     done
 fi
@@ -470,7 +470,7 @@ if ! run_stage 1 "debootstrap：Debian $SUITE 基础系统"; then
         echo "  ✓ deb 包已缓存，跳过下载 ($(du -sh "$DEB_TARBALL" | cut -f1))"
     else
         echo "  ↓ 预下载 deb 包 ..."
-        DOWNLOAD_TMP="/tmp/clawshell-debootstrap-download"
+        DOWNLOAD_TMP="/tmp/clawspan-debootstrap-download"
         rm -rf "$DOWNLOAD_TMP"
         mkdir -p "$DOWNLOAD_TMP"
 
@@ -511,7 +511,7 @@ deb http://security.debian.org/debian-security ${SUITE}-security main contrib
 SOURCES
 
     mkdir -p "$ROOTFS_DIR/etc/apt/apt.conf.d"
-    cat > "$ROOTFS_DIR/etc/apt/apt.conf.d/80clawshell-retry" <<'APTCONF'
+    cat > "$ROOTFS_DIR/etc/apt/apt.conf.d/80clawspan-retry" <<'APTCONF'
 Acquire::Retries "3";
 Acquire::https::Timeout "30";
 Acquire::http::Timeout "30";
@@ -521,7 +521,7 @@ APTCONF
         sed -i 's/# en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen
         locale-gen
     "
-    echo "clawshell" > "$ROOTFS_DIR/etc/hostname"
+    echo "clawspan" > "$ROOTFS_DIR/etc/hostname"
 
     umount_vfs
     save_checkpoint 2
@@ -600,7 +600,7 @@ if ! run_stage 5 "OpenClaw"; then
         # 修复 acpx 扩展目录权限（pnpm 全局安装为 root，acpx 需要写入 node_modules）
         OPENCLAW_DIR=\$(pnpm root -g)/openclaw
         if [[ -d \"\$OPENCLAW_DIR/extensions/acpx\" ]]; then
-            chown -R $CLAWSHELL_USER:$CLAWSHELL_USER \"\$OPENCLAW_DIR/extensions/acpx\"
+            chown -R $CLAWSPAN_USER:$CLAWSPAN_USER \"\$OPENCLAW_DIR/extensions/acpx\"
         fi
 
         # 严格验证
@@ -615,29 +615,29 @@ if ! run_stage 5 "OpenClaw"; then
     save_checkpoint 5
 fi
 
-# ── 阶段 6：ClawShell MCP Server ─────────────────────────────────────────
+# ── 阶段 6：ClawSpan MCP Server ─────────────────────────────────────────
 
-if ! run_stage 6 "ClawShell MCP Server"; then
+if ! run_stage 6 "ClawSpan MCP Server"; then
     mount_vfs
 
     # MCP Server
     mkdir -p "$ROOTFS_DIR$MCP_INSTALL_DIR"
-    cp "$CLAWSHELL_SRC/mcp/server/vsock_client.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/"
-    cp "$CLAWSHELL_SRC/mcp/server/mcp_server.py"   "$ROOTFS_DIR$MCP_INSTALL_DIR/"
+    cp "$CLAWSPAN_SRC/mcp/server/vsock_client.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/"
+    cp "$CLAWSPAN_SRC/mcp/server/mcp_server.py"   "$ROOTFS_DIR$MCP_INSTALL_DIR/"
 
     # OpenClaw skill
-    mkdir -p "$ROOTFS_DIR/opt/clawshell/skills/clawshell-gui"
-    cp "$CLAWSHELL_SRC/mcp/client/clawshell-gui/SKILL.md" \
-       "$ROOTFS_DIR/opt/clawshell/skills/clawshell-gui/"
+    mkdir -p "$ROOTFS_DIR/opt/clawspan/skills/clawspan-gui"
+    cp "$CLAWSPAN_SRC/mcp/client/clawspan-gui/SKILL.md" \
+       "$ROOTFS_DIR/opt/clawspan/skills/clawspan-gui/"
 
     # 用户
     chroot "$ROOTFS_DIR" bash -c "
-        useradd -m -s /bin/bash -G sudo $CLAWSHELL_USER
-        echo '$CLAWSHELL_USER ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/$CLAWSHELL_USER
+        useradd -m -s /bin/bash -G sudo $CLAWSPAN_USER
+        echo '$CLAWSPAN_USER ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/$CLAWSPAN_USER
     "
 
     # OpenClaw 配置
-    OPENCLAW_CONF_DIR="$ROOTFS_DIR/home/$CLAWSHELL_USER/.openclaw"
+    OPENCLAW_CONF_DIR="$ROOTFS_DIR/home/$CLAWSPAN_USER/.openclaw"
     mkdir -p "$OPENCLAW_CONF_DIR"
     cat > "$OPENCLAW_CONF_DIR/openclaw.json" <<CONF
 {
@@ -655,7 +655,7 @@ if ! run_stage 6 "ClawShell MCP Server"; then
         "enabled": true,
         "config": {
           "mcpServers": {
-            "clawshell-gui": {
+            "clawspan-gui": {
               "command": "python3",
               "args": ["$MCP_INSTALL_DIR/mcp_server.py"]
             }
@@ -666,26 +666,26 @@ if ! run_stage 6 "ClawShell MCP Server"; then
   },
   "skills": {
     "load": {
-      "extraDirs": ["/opt/clawshell/skills"]
+      "extraDirs": ["/opt/clawspan/skills"]
     }
   }
 }
 CONF
 
-    chroot "$ROOTFS_DIR" chown -R "$CLAWSHELL_USER:$CLAWSHELL_USER" "/home/$CLAWSHELL_USER/.openclaw"
+    chroot "$ROOTFS_DIR" chown -R "$CLAWSPAN_USER:$CLAWSPAN_USER" "/home/$CLAWSPAN_USER/.openclaw"
 
     # 启用 linger，确保 systemd user 服务在 VM 启动时自动运行（无需用户登录）
     mkdir -p "$ROOTFS_DIR/var/lib/systemd/linger"
-    touch "$ROOTFS_DIR/var/lib/systemd/linger/$CLAWSHELL_USER"
+    touch "$ROOTFS_DIR/var/lib/systemd/linger/$CLAWSPAN_USER"
 
     # WSL 配置
     cat > "$ROOTFS_DIR/etc/wsl.conf" <<WSL
 [user]
-default=$CLAWSHELL_USER
+default=$CLAWSPAN_USER
 
 [boot]
 systemd=true
-command=/bin/bash -c 'loginctl enable-linger $CLAWSHELL_USER 2>/dev/null; true'
+command=/bin/bash -c 'loginctl enable-linger $CLAWSPAN_USER 2>/dev/null; true'
 
 [network]
 generateResolvConf=true
@@ -714,7 +714,7 @@ if ! run_stage 7 "清理瘦身"; then
 
         apt-get clean
         rm -rf /var/lib/apt/lists/*
-        rm -rf /root/.cache/pip /home/$CLAWSHELL_USER/.cache/pip
+        rm -rf /root/.cache/pip /home/$CLAWSPAN_USER/.cache/pip
         pnpm store prune 2>/dev/null || true
 
         rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/*
@@ -724,7 +724,7 @@ if ! run_stage 7 "清理瘦身"; then
         find /var/log -type f -delete
         find / -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
         rm -rf /tmp/* /var/tmp/*
-        rm -f /etc/apt/apt.conf.d/80clawshell-retry
+        rm -f /etc/apt/apt.conf.d/80clawspan-retry
     "
 
     umount_vfs

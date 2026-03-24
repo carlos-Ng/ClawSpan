@@ -1,8 +1,8 @@
 using System;
 using System.Text.Json;
-using ClawShellUI.Models;
+using ClawSpanUI.Models;
 
-namespace ClawShellUI.Channel
+namespace ClawSpanUI.Channel
 {
 
 // MessageDispatcher 解析 Channel 2 收到的 JSON 帧，按 type 字段分发到具体事件。
@@ -121,4 +121,4 @@ public class MessageDispatcher
 	}
 }
 
-} // namespace ClawShellUI.Channel
+} // namespace ClawSpanUI.Channel

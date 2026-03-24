@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 // ─── Implement ──────────────────────────────────────────────────────────────
@@ -231,4 +231,4 @@ Result<nlohmann::json> CapabilityService::callCapability(std::string_view      c
 }
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

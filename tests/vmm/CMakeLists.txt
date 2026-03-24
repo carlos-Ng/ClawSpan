@@ -10,8 +10,8 @@ target_include_directories(vmm_tests PRIVATE
 )
 
 target_link_libraries(vmm_tests PRIVATE
-    clawshell_vmm
-    clawshell_headers
+    clawspan_vmm
+    clawspan_headers
     GTest::gtest
     GTest::gtest_main
 )

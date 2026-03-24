@@ -1,6 +1,6 @@
 ﻿#include "core/base/module_config.h"
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 std::optional<std::string> ModuleConfig::getString(std::string_view key) const
@@ -42,4 +42,4 @@ void ModuleConfig::set(std::string key, Value value)
 }
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

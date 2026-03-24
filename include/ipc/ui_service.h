@@ -9,14 +9,14 @@
 #include <memory>
 #include <string>
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UIService：Channel 2 双向事件总线
 //
 // 职责：
-//   1. 维护与 UI 客户端（ClawShell WinForms）的 Named Pipe 连接
+//   1. 维护与 UI 客户端（ClawSpan WinForms）的 Named Pipe 连接
 //   2. push()：向 UI 推送任意事件消息（status / task_begin / task_end / op_log）
 //   3. askConfirm()：阻断式操作确认请求，等待 UI 用户响应
 //
@@ -25,7 +25,7 @@ namespace ipc {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ConfirmTimeoutMode 定义当用户无响应时的处理策略。
-// 可通过 clawshell.toml [ui] 节点配置。
+// 可通过 clawspan.toml [ui] 节点配置。
 enum class ConfirmTimeoutMode
 {
     WAIT_FOREVER,  // 无限等待，适合用户在场场景
@@ -153,4 +153,4 @@ private:
 };
 
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan

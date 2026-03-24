@@ -12,7 +12,7 @@
 #  error "Platform not supported: add POSIX fd-based declarations here"
 #endif
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 
 // FrameCodec 提供基于 Length-prefix 的帧编解码功能（仅供 ipc 模块内部使用）。
@@ -115,4 +115,4 @@ private:
 };
 
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan

@@ -9,14 +9,14 @@
 #include <string_view>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 // 前向声明：UIService 定义在 ipc/ui_service.h，此处仅需指针参数，避免 core→ipc 头文件依赖。
 class UIService;
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 // 前向声明：避免 service.h 直接引入 task_registry.h 形成循环依赖风险，
@@ -111,4 +111,4 @@ private:
 };
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

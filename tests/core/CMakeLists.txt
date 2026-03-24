@@ -7,8 +7,8 @@ add_executable(core_tests
 )
 
 target_link_libraries(core_tests PRIVATE
-    clawshell_core
-    clawshell_headers
+    clawspan_core
+    clawspan_headers
     GTest::gtest
     GTest::gtest_main
 )

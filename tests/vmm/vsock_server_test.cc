@@ -11,7 +11,7 @@
 
 #include <string>
 
-namespace clawshell {
+namespace clawspan {
 namespace vmm {
 namespace {
 
@@ -133,4 +133,4 @@ TEST_F(VsockServerTest, RestartAfterStop)
 
 } // namespace
 } // namespace vmm
-} // namespace clawshell
+} // namespace clawspan

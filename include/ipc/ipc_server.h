@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -123,4 +123,4 @@ public:
 };
 
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan

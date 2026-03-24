@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 // ─── TaskEntry ──────────────────────────────────────────────────────────────
@@ -223,4 +223,4 @@ std::vector<std::string> TaskRegistry::activeTasks() const
 }
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

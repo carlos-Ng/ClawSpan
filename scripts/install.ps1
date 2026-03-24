@@ -1,46 +1,46 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    ClawShell one-click installer
+    ClawSpan one-click installer
 
 .DESCRIPTION
-    Download and install ClawShell (OpenClaw + GUI automation gateway).
+    Download and install ClawSpan (OpenClaw + GUI automation gateway).
 
     Installs:
-      - ClawShell daemon + UI + plugins (Windows side)
-      - ClawShell WSL2 VM (contains OpenClaw + MCP Server)
+      - ClawSpan daemon + UI + plugins (Windows side)
+      - ClawSpan WSL2 VM (contains OpenClaw + MCP Server)
 
     Install latest version:
-      irm https://github.com/carlos-Ng/ClawShell/releases/latest/download/install.ps1 | iex
+      irm https://github.com/carlos-Ng/ClawSpan/releases/latest/download/install.ps1 | iex
 
     Install specific version (recommended for pinning):
-      irm https://github.com/carlos-Ng/ClawShell/releases/latest/download/install.ps1 | iex -Version 0.1.0
+      irm https://github.com/carlos-Ng/ClawSpan/releases/latest/download/install.ps1 | iex -Version 0.1.0
       # Or download install.ps1 from the specific release (URL already pinned):
-      irm https://github.com/carlos-Ng/ClawShell/releases/download/v0.1.0/install.ps1 | iex
+      irm https://github.com/carlos-Ng/ClawSpan/releases/download/v0.1.0/install.ps1 | iex
 
     Release assets:
-      clawshell-windows-<ver>.zip  -- All Windows binaries (daemon, vmm, ui, dll)
-      clawshell-rootfs.tar.gz      -- WSL2 VM image (downloaded on first install)
+      clawspan-windows-<ver>.zip  -- All Windows binaries (daemon, vmm, ui, dll)
+      clawspan-rootfs.tar.gz      -- WSL2 VM image (downloaded on first install)
       install.ps1                  -- This installer script (included in each release)
 
 .PARAMETER Version
     Version number to install (e.g. 0.1.0). Leave empty for latest.
 
 .PARAMETER Uninstall
-    Uninstall ClawShell
+    Uninstall ClawSpan
 
 .PARAMETER Upgrade
-    Upgrade ClawShell components (preserves user data)
+    Upgrade ClawSpan components (preserves user data)
 
 .PARAMETER Offline
     Enable offline install mode (no network requests). In this mode, installer
     searches local assets near install.ps1 by default.
 
 .PARAMETER WindowsZipPath
-    Local path to clawshell-windows-<ver>.zip
+    Local path to clawspan-windows-<ver>.zip
 
 .PARAMETER RootfsPath
-    Local path to clawshell-rootfs.tar.gz (required for fresh install)
+    Local path to clawspan-rootfs.tar.gz (required for fresh install)
 
 .PARAMETER AssetDir
     Local directory containing release assets
@@ -65,8 +65,8 @@ param(
 
 # Version convention (unified):
 #   - Git tag / URL path: with "v"  → .../releases/download/v0.1.0/...
-#   - Package name / version string: no "v" → clawshell-windows-0.1.0.zip, config/version.txt = "0.1.0"
-# So URL is: .../v0.1.0/clawshell-windows-0.1.0.zip
+#   - Package name / version string: no "v" → clawspan-windows-0.1.0.zip, config/version.txt = "0.1.0"
+# So URL is: .../v0.1.0/clawspan-windows-0.1.0.zip
 
 # Normalize: -Version may be "0.1.0" or "v0.1.0"; we keep version without "v" for zip name and display
 if ($Version -match '^v(.+)$') { $Version = $Matches[1] }
@@ -83,8 +83,8 @@ if ($Host.Name -eq 'ConsoleHost') {
     } catch {}
 }
 
-$AppName        = "ClawShell"
-$DistroName     = "ClawShell"
+$AppName        = "ClawSpan"
+$DistroName     = "ClawSpan"
 $DefaultInstDir = Join-Path $env:LOCALAPPDATA $AppName
 $StartupDir     = [Environment]::GetFolderPath("Startup")
 $UninstallRegKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$AppName"
@@ -92,21 +92,21 @@ $UninstallRegKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$A
 # GitHub Release URL: path uses "v" (tag style), e.g. .../releases/download/v0.1.0
 if (-not $ReleaseUrl) {
     if ($Version) {
-        $DefaultReleaseBase = "https://github.com/carlos-Ng/ClawShell/releases/download/v$Version"
+        $DefaultReleaseBase = "https://github.com/carlos-Ng/ClawSpan/releases/download/v$Version"
     } else {
-        $DefaultReleaseBase = "https://github.com/carlos-Ng/ClawShell/releases/latest/download"
+        $DefaultReleaseBase = "https://github.com/carlos-Ng/ClawSpan/releases/latest/download"
     }
 }
 
 # Release assets (zip contains all Windows binaries; rootfs packaged separately so upgrades can skip it)
-$RootfsName = "clawshell-rootfs.tar.gz"
+$RootfsName = "clawspan-rootfs.tar.gz"
 
 # Files expected inside the zip (used for install verification)
 $WindowsPayloadExpectations = @{
     bin = @(
-        "claw_shell_service.exe"
-        "claw_shell_vmm.exe"
-        "claw_shell_ui.exe"
+        "claw_span_service.exe"
+        "claw_span_vmm.exe"
+        "claw_span_ui.exe"
     )
     modules = @(
         "capability_ax.dll"
@@ -164,12 +164,12 @@ function Confirm-Continue {
     }
 }
 
-function Stop-ClawShellProcesses {
+function Stop-ClawSpanProcesses {
     param(
         [int]$TimeoutSeconds = 12
     )
 
-    $names = @("claw_shell_service", "claw_shell_vmm", "claw_shell_ui")
+    $names = @("claw_span_service", "claw_span_vmm", "claw_span_ui")
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     $killedByTaskkill = $false
 
@@ -194,7 +194,7 @@ function Stop-ClawShellProcesses {
 
     $remaining = Get-Process -Name $names -ErrorAction SilentlyContinue
     if ($remaining) {
-        Write-Warn "Some ClawShell processes are still running:"
+        Write-Warn "Some ClawSpan processes are still running:"
         $remaining |
             Select-Object ProcessName, Id |
             ForEach-Object { Write-Warn "  $($_.ProcessName) (PID: $($_.Id))" }
@@ -366,7 +366,7 @@ function Invoke-UninstallFlow {
     $uninstallComplete = $true
 
     Write-Step "Stopping $AppName processes ..."
-    $stopped = Stop-ClawShellProcesses -TimeoutSeconds 15
+    $stopped = Stop-ClawSpanProcesses -TimeoutSeconds 15
 
     Write-Step "Shutting down WSL distro ..."
     wsl -t $DistroName 2>$null
@@ -431,10 +431,10 @@ function Invoke-UninstallFlow {
         }
     }
 
-    $remaining = Get-Process -Name "claw_shell_service", "claw_shell_vmm", "claw_shell_ui" -ErrorAction SilentlyContinue
+    $remaining = Get-Process -Name "claw_span_service", "claw_span_vmm", "claw_span_ui" -ErrorAction SilentlyContinue
     if ($remaining) {
         $uninstallComplete = $false
-        Write-Warn "Residual ClawShell processes detected after uninstall:"
+        Write-Warn "Residual ClawSpan processes detected after uninstall:"
         $remaining |
             Select-Object ProcessName, Id |
             ForEach-Object { Write-Warn "  $($_.ProcessName) (PID: $($_.Id))" }
@@ -613,8 +613,8 @@ function Invoke-Download {
         }
         Write-Host ""
         Write-Host "  If you cannot access GitHub, download these files manually:" -ForegroundColor Yellow
-        Write-Host "    - clawshell-windows-<version>.zip" -ForegroundColor White
-        Write-Host "    - clawshell-rootfs.tar.gz (first install)" -ForegroundColor White
+        Write-Host "    - clawspan-windows-<version>.zip" -ForegroundColor White
+        Write-Host "    - clawspan-rootfs.tar.gz (first install)" -ForegroundColor White
         Write-Host "  Place them in $DownloadDir and re-run the script." -ForegroundColor Yellow
         Write-Host ""
         Fail-Install "Download failed: $Desc"
@@ -689,12 +689,12 @@ function Resolve-Assets {
         if (-not $WindowsZipPath) {
             $zipCandidates = @()
             foreach ($dir in $searchDirs) {
-                $zipCandidates += Get-ChildItem -Path $dir -Filter "clawshell-windows-*.zip" -File -ErrorAction SilentlyContinue
+                $zipCandidates += Get-ChildItem -Path $dir -Filter "clawspan-windows-*.zip" -File -ErrorAction SilentlyContinue
             }
             if ($zipCandidates.Count -gt 1) {
                 $zipCandidates = $zipCandidates | Sort-Object `
                     @{ Expression = {
-                        if ($_.Name -match '^clawshell-windows-(.+)\.zip$') {
+                        if ($_.Name -match '^clawspan-windows-(.+)\.zip$') {
                             try { [version]$Matches[1] } catch { [version]"0.0.0.0" }
                         } else {
                             [version]"0.0.0.0"
@@ -728,18 +728,18 @@ function Resolve-Assets {
             Write-Host "    3) Put files next to install.ps1 and run with -Offline" -ForegroundColor White
             Write-Host ""
             Write-Host "  Examples:" -ForegroundColor Yellow
-            Write-Host "    .\install.ps1 -Offline -WindowsZipPath `"D:\pkg\clawshell-windows-0.1.1.zip`" -RootfsPath `"D:\pkg\clawshell-rootfs.tar.gz`"" -ForegroundColor White
+            Write-Host "    .\install.ps1 -Offline -WindowsZipPath `"D:\pkg\clawspan-windows-0.1.1.zip`" -RootfsPath `"D:\pkg\clawspan-rootfs.tar.gz`"" -ForegroundColor White
             Write-Host "    .\install.ps1 -Offline -AssetDir `"D:\pkg`"" -ForegroundColor White
             Write-Host ""
             Fail-Install "Offline assets not found"
         }
 
         $zipLeaf = [System.IO.Path]::GetFileName($WindowsZipPath)
-        if ($zipLeaf -match '^clawshell-windows-(.+)\.zip$') {
+        if ($zipLeaf -match '^clawspan-windows-(.+)\.zip$') {
             if (-not $ResolvedVersion) { $ResolvedVersion = $Matches[1] }
         }
         if (-not $ResolvedVersion) {
-            Fail-Install "Cannot determine version from Windows package filename. Please pass -Version <x.y.z> or use clawshell-windows-<ver>.zip naming."
+            Fail-Install "Cannot determine version from Windows package filename. Please pass -Version <x.y.z> or use clawspan-windows-<ver>.zip naming."
         }
 
         $windowsZipName = [System.IO.Path]::GetFileName($WindowsZipPath)
@@ -782,7 +782,7 @@ function Resolve-Assets {
         if (-not $ResolvedVersion) {
             Write-Step "Querying latest version ..."
             try {
-                $apiJson = & $CurlExe -s --fail --connect-timeout 10 "https://api.github.com/repos/carlos-Ng/ClawShell/releases/latest" 2>&1
+                $apiJson = & $CurlExe -s --fail --connect-timeout 10 "https://api.github.com/repos/carlos-Ng/ClawSpan/releases/latest" 2>&1
                 if ($LASTEXITCODE -eq 0 -and $apiJson) {
                     $apiResp = $apiJson | ConvertFrom-Json
                     if ($apiResp.tag_name) {
@@ -795,7 +795,7 @@ function Resolve-Assets {
             if (-not $ResolvedVersion) {
                 Write-Warn "GitHub API unavailable, trying redirect-based version detection ..."
                 try {
-                    $effectiveUrl = & $CurlExe -s -L -o NUL -w "%{url_effective}" --connect-timeout 10 "https://github.com/carlos-Ng/ClawShell/releases/latest" 2>&1
+                    $effectiveUrl = & $CurlExe -s -L -o NUL -w "%{url_effective}" --connect-timeout 10 "https://github.com/carlos-Ng/ClawSpan/releases/latest" 2>&1
                     if ($LASTEXITCODE -eq 0 -and $effectiveUrl -match "/releases/tag/v([^/?#]+)") {
                         $ResolvedVersion = $Matches[1]
                         Write-Ok "Latest version (redirect): $ResolvedVersion"
@@ -814,7 +814,7 @@ function Resolve-Assets {
             }
         }
 
-        $windowsZipName = "clawshell-windows-$ResolvedVersion.zip"
+        $windowsZipName = "clawspan-windows-$ResolvedVersion.zip"
         $zipDestPath = Join-Path $DownloadDir $windowsZipName
         Invoke-Download -Url "$resolvedReleaseUrl/$windowsZipName" -Dest $zipDestPath -Desc "Windows package ($windowsZipName)" -ExpectedType "zip"
 
@@ -966,7 +966,7 @@ New-Item -ItemType Directory -Path $DistroDir -Force | Out-Null
 
 # Stop running processes
 Write-Step "Stopping old processes ..."
-Stop-ClawShellProcesses -TimeoutSeconds 12 | Out-Null
+Stop-ClawSpanProcesses -TimeoutSeconds 12 | Out-Null
 
 # Extract Windows package
 # zip 结构：bin/(exe), modules/(dll), config/(toml)
@@ -1080,16 +1080,16 @@ function Write-InstallConfiguration {
                         enabled = $true
                         config = @{
                             mcpServers = @{
-                                "clawshell-gui" = @{
+                                "clawspan-gui" = @{
                                     command = "python3"
-                                    args = @("/opt/clawshell/mcp/mcp_server.py")
+                                    args = @("/opt/clawspan/mcp/mcp_server.py")
                                 }
                             }
                         }
                     }
                 }
             }
-            skills = @{ load = @{ extraDirs = @("/opt/clawshell/skills") } }
+            skills = @{ load = @{ extraDirs = @("/opt/clawspan/skills") } }
         }
 
         if ($ApiProvider -eq "local" -and $LocalModelUrl) {
@@ -1147,7 +1147,7 @@ function Write-InstallConfiguration {
         }
 
         $configJson = $openclawConfig | ConvertTo-Json -Depth 10
-        Invoke-WslSilent "-d $DistroName -- bash -c `"cat > /home/clawshell/.openclaw/openclaw.json`"" -InputText $configJson | Out-Null
+        Invoke-WslSilent "-d $DistroName -- bash -c `"cat > /home/clawspan/.openclaw/openclaw.json`"" -InputText $configJson | Out-Null
         Write-Ok "OpenClaw config (with Gateway token)"
     } elseif (Test-Path $tokenFilePath) {
         $existingToken = Get-Content $tokenFilePath -ErrorAction SilentlyContinue |
@@ -1165,19 +1165,19 @@ function Write-InstallConfiguration {
         } else {
             "export OPENAI_API_KEY=`"$ApiKey`""
         }
-        Invoke-WslSilent "-d $DistroName -- bash -c `"cat > /home/clawshell/.clawshell-env`"" -InputText $envContent | Out-Null
-        Invoke-WslSilent "-d $DistroName -- bash -c `"chown clawshell:clawshell /home/clawshell/.clawshell-env && chmod 600 /home/clawshell/.clawshell-env`"" | Out-Null
-        $bashrcLine = '[[ -f ~/.clawshell-env ]] && source ~/.clawshell-env'
-        Invoke-WslSilent "-d $DistroName -- bash -c `"grep -qF .clawshell-env /home/clawshell/.bashrc 2>/dev/null || echo '$bashrcLine' >> /home/clawshell/.bashrc`"" | Out-Null
+        Invoke-WslSilent "-d $DistroName -- bash -c `"cat > /home/clawspan/.clawspan-env`"" -InputText $envContent | Out-Null
+        Invoke-WslSilent "-d $DistroName -- bash -c `"chown clawspan:clawspan /home/clawspan/.clawspan-env && chmod 600 /home/clawspan/.clawspan-env`"" | Out-Null
+        $bashrcLine = '[[ -f ~/.clawspan-env ]] && source ~/.clawspan-env'
+        Invoke-WslSilent "-d $DistroName -- bash -c `"grep -qF .clawspan-env /home/clawspan/.bashrc 2>/dev/null || echo '$bashrcLine' >> /home/clawspan/.bashrc`"" | Out-Null
         Write-Ok "OpenClaw API config"
     }
 
     if (-not $IsUpgrade -and $ApiProvider -eq "local" -and $LocalModelUrl -match ":11434") {
         $envContent = "export OLLAMA_API_KEY=`"ollama-local`""
-        Invoke-WslSilent "-d $DistroName -- bash -c `"cat > /home/clawshell/.clawshell-env`"" -InputText $envContent | Out-Null
-        Invoke-WslSilent "-d $DistroName -- bash -c `"chown clawshell:clawshell /home/clawshell/.clawshell-env && chmod 600 /home/clawshell/.clawshell-env`"" | Out-Null
-        $bashrcLine = '[[ -f ~/.clawshell-env ]] && source ~/.clawshell-env'
-        Invoke-WslSilent "-d $DistroName -- bash -c `"grep -qF .clawshell-env /home/clawshell/.bashrc 2>/dev/null || echo '$bashrcLine' >> /home/clawshell/.bashrc`"" | Out-Null
+        Invoke-WslSilent "-d $DistroName -- bash -c `"cat > /home/clawspan/.clawspan-env`"" -InputText $envContent | Out-Null
+        Invoke-WslSilent "-d $DistroName -- bash -c `"chown clawspan:clawspan /home/clawspan/.clawspan-env && chmod 600 /home/clawspan/.clawspan-env`"" | Out-Null
+        $bashrcLine = '[[ -f ~/.clawspan-env ]] && source ~/.clawspan-env'
+        Invoke-WslSilent "-d $DistroName -- bash -c `"grep -qF .clawspan-env /home/clawspan/.bashrc 2>/dev/null || echo '$bashrcLine' >> /home/clawspan/.bashrc`"" | Out-Null
         Write-Ok "Ollama environment variables"
     }
 
@@ -1188,22 +1188,22 @@ function Write-InstallConfiguration {
             Write-Step "Retrying service registration ($attempt/3) ..."
             Start-Sleep -Seconds 2
         }
-        $installExitCode = Invoke-WslSilent "-d $DistroName -u clawshell -- bash -lc `"openclaw daemon install >/dev/null 2>&1`""
+        $installExitCode = Invoke-WslSilent "-d $DistroName -u clawspan -- bash -lc `"openclaw daemon install >/dev/null 2>&1`""
         if ($installExitCode -eq 0) { break }
     }
     if ($installExitCode -eq 0) {
         Write-Ok "OpenClaw Gateway registered as systemd service"
     } else {
         Write-Warn "OpenClaw Gateway service registration skipped (environment not fully ready yet)."
-        Write-Warn "It will be retried on next install/upgrade. Manual command: wsl -d $DistroName -u clawshell -- bash -lc 'openclaw daemon install'"
+        Write-Warn "It will be retried on next install/upgrade. Manual command: wsl -d $DistroName -u clawspan -- bash -lc 'openclaw daemon install'"
     }
 
     Write-Step "Checking systemd linger state ..."
-    $lingerExistsExit = Invoke-WslSilent "-d $DistroName -- bash -lc `"test -f /var/lib/systemd/linger/clawshell`""
+    $lingerExistsExit = Invoke-WslSilent "-d $DistroName -- bash -lc `"test -f /var/lib/systemd/linger/clawspan`""
     if ($lingerExistsExit -eq 0) {
         Write-Ok "systemd linger already configured"
     } else {
-        $lingerEnableExit = Invoke-WslSilent "-d $DistroName -- bash -lc `"loginctl enable-linger clawshell >/dev/null 2>&1`""
+        $lingerEnableExit = Invoke-WslSilent "-d $DistroName -- bash -lc `"loginctl enable-linger clawspan >/dev/null 2>&1`""
         if ($lingerEnableExit -eq 0) {
             Write-Ok "systemd linger enabled (OpenClaw will auto-start when distro boots)"
         } else {
@@ -1215,19 +1215,19 @@ function Write-InstallConfiguration {
     $startExitCode = 1
     for ($attempt = 1; $attempt -le 2; $attempt++) {
         if ($attempt -gt 1) { Start-Sleep -Seconds 1 }
-        $startExitCode = Invoke-WslSilent "-d $DistroName -u clawshell -- bash -lc `"openclaw daemon start >/dev/null 2>&1`""
+        $startExitCode = Invoke-WslSilent "-d $DistroName -u clawspan -- bash -lc `"openclaw daemon start >/dev/null 2>&1`""
         if ($startExitCode -eq 0) { break }
     }
     if ($startExitCode -eq 0) {
         Write-Ok "OpenClaw Gateway started"
     } else {
         Write-Warn "OpenClaw Gateway start failed (exit code: $startExitCode)"
-        Write-Warn "You can run manually later: wsl -d $DistroName -u clawshell -- bash -lc 'openclaw daemon start'"
+        Write-Warn "You can run manually later: wsl -d $DistroName -u clawspan -- bash -lc 'openclaw daemon start'"
     }
 
     if (-not $IsUpgrade -and $GatewayToken) {
 @"
-# ClawShell OpenClaw Gateway Access Token
+# ClawSpan OpenClaw Gateway Access Token
 # Keep this safe, do not share
 #
 # WebUI URL: http://localhost:$GatewayPort
@@ -1268,7 +1268,7 @@ function Register-StartupShortcut {
         [string]$StartupDir
     )
     Write-Step "Registering startup shortcut ..."
-    $daemonExe = Join-Path $BinDir "claw_shell_service.exe"
+    $daemonExe = Join-Path $BinDir "claw_span_service.exe"
     $shortcutPath = Join-Path $StartupDir "$AppName.lnk"
     $shell = New-Object -ComObject WScript.Shell
     $shortcut = $shell.CreateShortcut($shortcutPath)
@@ -1337,7 +1337,7 @@ function Register-UninstallEntry {
 
     Set-ItemProperty -Path $UninstallRegKey -Name "DisplayName"     -Value $AppName
     Set-ItemProperty -Path $UninstallRegKey -Name "DisplayVersion"  -Value $ResolvedVersion
-    Set-ItemProperty -Path $UninstallRegKey -Name "Publisher"       -Value "ClawShell"
+    Set-ItemProperty -Path $UninstallRegKey -Name "Publisher"       -Value "ClawSpan"
     Set-ItemProperty -Path $UninstallRegKey -Name "InstallLocation" -Value $InstallDir
     Set-ItemProperty -Path $UninstallRegKey -Name "UninstallString" -Value $uninstallCmd
     Set-ItemProperty -Path $UninstallRegKey -Name "QuietUninstallString" -Value $uninstallCmd
@@ -1372,7 +1372,7 @@ Start-Process -FilePath $daemonExe -ArgumentList "--config", "`"$configPath`"" -
 Write-Ok "Daemon started"
 
 # UI
-$uiExe = Join-Path $BinDir "claw_shell_ui.exe"
+$uiExe = Join-Path $BinDir "claw_span_ui.exe"
 if (Test-Path $uiExe) {
     Write-Step "Starting UI ..."
     Start-Process -FilePath $uiExe -WindowStyle Hidden

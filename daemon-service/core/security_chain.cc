@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cassert>
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 // registerModule 向安全调用链注册一个模块，按 priority 升序插入。
@@ -106,4 +106,4 @@ void SecurityChain::notifyCapabilityRegistered(const std::string& capability_nam
 }
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

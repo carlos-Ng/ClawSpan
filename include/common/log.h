@@ -15,7 +15,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-namespace clawshell {
+namespace clawspan {
 namespace log {
 
 // Mode 描述日志输出目标：控制台（stderr）或滚动文件。
@@ -154,7 +154,7 @@ inline void installDefaultConsoleLogger()
 	auto sinks = std::vector<spdlog::sink_ptr>{};
 	sinks.emplace_back(std::make_shared<spdlog::sinks::stderr_color_sink_mt>());
 
-	auto lg = std::make_shared<spdlog::logger>("clawshell", sinks.begin(), sinks.end());
+	auto lg = std::make_shared<spdlog::logger>("clawspan", sinks.begin(), sinks.end());
 	lg->set_level(spdlog::level::info);
 	lg->set_pattern(defaultPattern());
 	lg->flush_on(spdlog::level::info);
@@ -191,7 +191,7 @@ inline void init(const Config& cfg)
 		sinks.emplace_back(std::make_shared<spdlog::sinks::stderr_color_sink_mt>());
 	}
 
-	auto lg = std::make_shared<spdlog::logger>("clawshell", sinks.begin(), sinks.end());
+	auto lg = std::make_shared<spdlog::logger>("clawspan", sinks.begin(), sinks.end());
 	lg->set_level(cfg.level);
 	lg->set_pattern(defaultPattern());
 	lg->flush_on(spdlog::level::info);
@@ -224,12 +224,12 @@ inline void setLevel(spdlog::level::level_enum level)
 }
 
 } // namespace log
-} // namespace clawshell
+} // namespace clawspan
 
 // 统一日志宏（须通过宏调用以展开 %s:%# 源文件与行号）。
-#define LOG_TRACE(...)    do { ::clawshell::log::logger(); SPDLOG_TRACE(__VA_ARGS__);    } while (0)
-#define LOG_DEBUG(...)    do { ::clawshell::log::logger(); SPDLOG_DEBUG(__VA_ARGS__);    } while (0)
-#define LOG_INFO(...)     do { ::clawshell::log::logger(); SPDLOG_INFO(__VA_ARGS__);     } while (0)
-#define LOG_WARN(...)     do { ::clawshell::log::logger(); SPDLOG_WARN(__VA_ARGS__);     } while (0)
-#define LOG_ERROR(...)    do { ::clawshell::log::logger(); SPDLOG_ERROR(__VA_ARGS__);    } while (0)
-#define LOG_CRITICAL(...) do { ::clawshell::log::logger(); SPDLOG_CRITICAL(__VA_ARGS__); } while (0)
+#define LOG_TRACE(...)    do { ::clawspan::log::logger(); SPDLOG_TRACE(__VA_ARGS__);    } while (0)
+#define LOG_DEBUG(...)    do { ::clawspan::log::logger(); SPDLOG_DEBUG(__VA_ARGS__);    } while (0)
+#define LOG_INFO(...)     do { ::clawspan::log::logger(); SPDLOG_INFO(__VA_ARGS__);     } while (0)
+#define LOG_WARN(...)     do { ::clawspan::log::logger(); SPDLOG_WARN(__VA_ARGS__);     } while (0)
+#define LOG_ERROR(...)    do { ::clawspan::log::logger(); SPDLOG_ERROR(__VA_ARGS__);    } while (0)
+#define LOG_CRITICAL(...) do { ::clawspan::log::logger(); SPDLOG_CRITICAL(__VA_ARGS__); } while (0)

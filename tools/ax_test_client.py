@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ax_test_client.py — ClawShell ax capability 手动测试客户端（Windows Named Pipe 版）
+ax_test_client.py — ClawSpan ax capability 手动测试客户端（Windows Named Pipe 版）
 
 用法：
   python tools\\ax_test_client.py [pipe_path]
@@ -70,7 +70,7 @@ def connect_pipe(path: str):
             if e.args[0] == winerror.ERROR_FILE_NOT_FOUND:
                 print(f"[ERROR] Named Pipe 不存在：{path}")
                 print("       请先启动 crew-shell-service：")
-                print(r"         .\build\crew-shell-service.exe -f -c clawshell.toml")
+                print(r"         .\build\crew-shell-service.exe -f -c clawspan.toml")
                 sys.exit(1)
             print(f"[ERROR] 连接失败：{e}")
             sys.exit(1)
@@ -245,7 +245,7 @@ def interactive_shell(handle) -> None:
     """
     print(textwrap.dedent("""
     ┌──────────────────────────────────────────────────────────────┐
-    │  ClawShell ax 测试客户端（Windows Named Pipe）            │
+    │  ClawSpan ax 测试客户端（Windows Named Pipe）            │
     │  输入 help 查看所有支持的操作及参数说明                      │
     └──────────────────────────────────────────────────────────────┘
     """))
@@ -322,7 +322,7 @@ def run_script(handle, script_path: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="ClawShell ax capability 测试客户端（Windows Named Pipe）",
+        description="ClawSpan ax capability 测试客户端（Windows Named Pipe）",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=textwrap.dedent(r"""
             示例：

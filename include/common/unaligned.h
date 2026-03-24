@@ -3,7 +3,7 @@
 #include <cstring>
 #include <type_traits>
 
-namespace clawshell {
+namespace clawspan {
 
 // Safe unaligned load/store helpers.
 // - Always uses memcpy to avoid UB and alignment traps (e.g. SIGBUS on arm64).
@@ -28,5 +28,5 @@ inline void storeUnaligned(void* p, T v) {
     std::memcpy(p, &v, sizeof(T));
 }
 
-} // namespace clawshell
+} // namespace clawspan
 

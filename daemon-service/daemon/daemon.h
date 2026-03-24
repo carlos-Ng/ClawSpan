@@ -6,7 +6,7 @@
 #include <memory>
 #include <string>
 
-namespace clawshell {
+namespace clawspan {
 namespace daemon {
 
 // DaemonConfig daemon 运行时的完整配置，由命令行参数与 TOML 配置合并而成。
@@ -19,7 +19,7 @@ namespace daemon {
 struct DaemonConfig
 {
 	// ── 默认值常量（供结构体成员初始化与 parseToml 判断共用）────────────────────
-	static constexpr const char* DEFAULT_CONFIG_PATH      = "clawshell.toml";
+	static constexpr const char* DEFAULT_CONFIG_PATH      = "clawspan.toml";
 	static constexpr const char* DEFAULT_SOCKET_PATH      = "\\\\.\\pipe\\crew-shell-service";
 	static constexpr const char* DEFAULT_LOG_LEVEL        = "info";
 	static constexpr const char* DEFAULT_MODULE_DIR       = "";
@@ -68,7 +68,7 @@ struct DaemonConfig
 	bool     vsock_enabled = DEFAULT_VSOCK_ENABLED;
 
 	// ── VMM 配置 ────────────────────────────────────────────────────────────
-	static constexpr const char* DEFAULT_VMM_DISTRO_NAME = "ClawShell";
+	static constexpr const char* DEFAULT_VMM_DISTRO_NAME = "ClawSpan";
 	static constexpr const char* DEFAULT_VMM_ROOTFS_PATH = "";
 	static constexpr const char* DEFAULT_VMM_EXE_PATH    = "";
 	static constexpr bool        DEFAULT_VMM_AUTO_START  = true;
@@ -135,4 +135,4 @@ private:
 };
 
 } // namespace daemon
-} // namespace clawshell
+} // namespace clawspan

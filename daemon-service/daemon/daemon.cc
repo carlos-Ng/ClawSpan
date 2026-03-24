@@ -31,7 +31,7 @@
 #  error "Platform not supported: add POSIX sys/socket.h/sys/un.h implementation here"
 #endif
 
-namespace clawshell {
+namespace clawspan {
 namespace daemon {
 
 // ─── g_shutdown_event ─────────────────────────────────────────────────────
@@ -675,7 +675,7 @@ Status Daemon::init(DaemonConfig config)
 			LOG_WARN("vmm_launcher start failed: {}, VM management disabled",
 			         vmm_status.message);
 		} else {
-			LOG_INFO("claw_shell_vmm.exe started for distro '{}'", config.vmm_distro_name);
+			LOG_INFO("claw_span_vmm.exe started for distro '{}'", config.vmm_distro_name);
 			implement_->updateVmState("starting");
 
 			// 启动后台健康探测线程（延迟确认 VM + 周期探测 OpenClaw）
@@ -762,4 +762,4 @@ void Daemon::stop()
 }
 
 } // namespace daemon
-} // namespace clawshell
+} // namespace clawspan

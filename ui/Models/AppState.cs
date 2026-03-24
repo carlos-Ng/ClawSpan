@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ClawShellUI.Models
+namespace ClawSpanUI.Models
 {
 
 // AppState 持有全局运行时状态，是 UI 与 Channel 之间的桥梁。
@@ -15,7 +15,7 @@ public class AppState
 	// 连接状态
 	// ─────────────────────────────────────────────────────────
 
-	// Channel 2 Named Pipe 是否已连接（即 ClawShell UI 与 daemon 的确认通道）
+	// Channel 2 Named Pipe 是否已连接（即 ClawSpan UI 与 daemon 的确认通道）
 	public bool ChannelConnected { get; private set; }
 
 	// Daemon 是否在线（首次收到 status 消息后为 true）
@@ -176,4 +176,4 @@ public class AppState
 	}
 }
 
-} // namespace ClawShellUI.Models
+} // namespace ClawSpanUI.Models

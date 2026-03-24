@@ -6,7 +6,7 @@
 
 #include <string>
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 namespace {
 
@@ -176,4 +176,4 @@ TEST(ModuleConfigMultiKey, MultipleKeysCoexist)
 
 } // namespace
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

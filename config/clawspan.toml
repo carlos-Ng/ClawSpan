@@ -1,5 +1,5 @@
-# ClawShell daemon 配置文件（Windows 版本）
-# 运行方式：cd /path/to/ClawShell && .\build\Debug\claw_shell_service.exe -f -c config\clawshell.toml
+# ClawSpan daemon 配置文件（Windows 版本）
+# 运行方式：cd /path/to/ClawSpan && .\build\Debug\claw_span_service.exe -f -c config\clawspan.toml
 
 [daemon]
 # IPC Named Pipe 路径（Windows 格式，客户端使用 \\.\pipe\crew-shell-service 连接）
@@ -8,14 +8,14 @@ socket_path      = "\\\\.\\pipe\\crew-shell-service"
 thread_pool_size = 4
 log_level        = "debug"
 
-# DLL 所在目录，claw_shell_service 从此目录按 "{name}.dll" 推导路径
+# DLL 所在目录，claw_span_service 从此目录按 "{name}.dll" 推导路径
 # dist 目标已将所有 DLL 集中到此目录
 module_dir = "build\\modules"
 
 # ── UIService (Channel 2) ────────────────────────────────────────────────────
 
 [ui]
-# ClawShell WinForms UI 连接的 Named Pipe 路径
+# ClawSpan WinForms UI 连接的 Named Pipe 路径
 pipe_path    = "\\\\.\\pipe\\crew-shell-service-ui"
 
 # 用户无响应时的超时策略：wait_forever / timeout_deny / timeout_allow
@@ -33,7 +33,7 @@ enabled = true
 # ── VMM (VM 生命周期管理) ──────────────────────────────────────────────────
 
 [vmm]
-distro_name = "ClawShell"
+distro_name = "ClawSpan"
 auto_start  = false
 
 # ── 能力模块 ─────────────────────────────────────────────────────────────────

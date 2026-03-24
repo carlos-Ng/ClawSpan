@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace security {
 
 // FilterRule 描述一条过滤规则。
@@ -81,4 +81,4 @@ private:
 };
 
 } // namespace security
-} // namespace clawshell
+} // namespace clawspan

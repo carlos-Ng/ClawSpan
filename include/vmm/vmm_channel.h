@@ -4,9 +4,9 @@
 //
 // Channel 1 负责 vmm.exe（host 侧进程）与 daemon 中 VmManager 组件的双向通信。
 // 传输层：Windows Named Pipe，每个 vmm 实例对应独立管道：
-//   \\.\pipe\clawshell-vmm-{distro_name}
+//   \\.\pipe\clawspan-vmm-{distro_name}
 //
-// 协议：ClawShell FrameCodec（4B 大端长度前缀 + UTF-8 JSON body），
+// 协议：ClawSpan FrameCodec（4B 大端长度前缀 + UTF-8 JSON body），
 //        消息通过 "type" 字段路由，与 Channel 2 / Channel 3 格式完全一致。
 //
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,7 +30,7 @@
 
 #include <string>
 
-namespace clawshell {
+namespace clawspan {
 namespace vmm {
 
 // ── 管道路径规范 ──────────────────────────────────────────────────────────────
@@ -40,10 +40,10 @@ namespace vmm {
 // 入参:
 // - distro_name: distro 唯一名称（ASCII，如 "agent-enclave-vm"）
 //
-// 出参/返回: 形如 \\.\pipe\clawshell-vmm-{distro_name} 的管道路径
+// 出参/返回: 形如 \\.\pipe\clawspan-vmm-{distro_name} 的管道路径
 inline std::string vmmPipeName(const std::string& distro_name)
 {
-	return "\\\\.\\pipe\\clawshell-vmm-" + distro_name;
+	return "\\\\.\\pipe\\clawspan-vmm-" + distro_name;
 }
 
 // ── DistroRunState ────────────────────────────────────────────────────────────
@@ -127,4 +127,4 @@ constexpr const char* MSG_VMM_DESTROY  = "vmm_destroy";  // 注销并删除 dist
 //   {"type":"vmm_destroy","id":5}
 
 } // namespace vmm
-} // namespace clawshell
+} // namespace clawspan

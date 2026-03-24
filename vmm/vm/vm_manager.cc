@@ -4,9 +4,9 @@
 // 管理 distro 生命周期：创建、启动、停止、快照、恢复、销毁。
 //
 // 适配自 AI-agent-sec src/vm/vm_manager.cc，主要变更：
-//   - 命名空间：enclave::vm → clawshell::vmm
+//   - 命名空间：enclave::vm → clawspan::vmm
 //   - 返回值：bool/wstring → Status（含结构化错误码）
-//   - 安装目录：%LOCALAPPDATA%\agent-enclave → %LOCALAPPDATA%\ClawShell
+//   - 安装目录：%LOCALAPPDATA%\agent-enclave → %LOCALAPPDATA%\ClawSpan
 //   - 日志：全量 LOG_INFO / LOG_ERROR / LOG_WARN
 //   - lastCreateHr() + getLastWslDiagnostics() 合并为 lastDiagnostics()
 
@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace vmm {
 
 // ── 内部工具函数 ─────────────────────────────────────────────────────────────
@@ -508,7 +508,7 @@ bool WslVMManager::createDistroViaWslExe(const DistroConfig& config)
 			return false;
 		}
 		install_dir = std::wstring(local_app)
-		            + L"\\ClawShell\\distros\\" + config.name;
+		            + L"\\ClawSpan\\distros\\" + config.name;
 	}
 	SHCreateDirectoryExW(nullptr, install_dir.c_str(), nullptr);
 
@@ -1007,7 +1007,7 @@ Status WslVMManager::restoreFromSnapshot(const DistroConfig& cfg,
 			return {Status::IO_ERROR, "failed to get LOCALAPPDATA"};
 		}
 		install_dir = std::wstring(local_app)
-		            + L"\\ClawShell\\distros\\" + cfg.name;
+		            + L"\\ClawSpan\\distros\\" + cfg.name;
 	}
 	// 递归创建目录
 	SHCreateDirectoryExW(nullptr, install_dir.c_str(), nullptr);
@@ -1062,4 +1062,4 @@ std::unique_ptr<VMManagerInterface> createVMManager()
 }
 
 } // namespace vmm
-} // namespace clawshell
+} // namespace clawspan

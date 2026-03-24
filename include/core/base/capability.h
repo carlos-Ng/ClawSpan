@@ -6,7 +6,7 @@
 #include <nlohmann/json.hpp>
 #include <string_view>
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 // CapabilityInterface 是所有能力插件的基类，继承 ModuleInterface 获得统一的
@@ -41,4 +41,4 @@ public:
 };
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

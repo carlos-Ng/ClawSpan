@@ -11,7 +11,7 @@
 
 #include <windows.h>
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 
 // ─── Implement ──────────────────────────────────────────────────────────────
@@ -196,4 +196,4 @@ Result<nlohmann::json> WindowsIpcClient::callCapability(const std::string&    ta
 }
 
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan

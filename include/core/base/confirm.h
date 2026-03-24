@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 // ConfirmHandlerInterface 是 NeedConfirm 确认通道的抽象接口。
@@ -37,4 +37,4 @@ public:
 };
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -129,4 +129,4 @@ private:
 };
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan
