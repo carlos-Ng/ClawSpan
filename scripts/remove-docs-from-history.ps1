@@ -24,7 +24,7 @@ Push-Location $repoRoot
 
 try {
     # 1. 备份文件到临时目录
-    $backupDir = Join-Path $env:TEMP "clawshell-docs-backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+    $backupDir = Join-Path $env:TEMP "clawspan-docs-backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
     New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
 
     foreach ($p in $Paths) {

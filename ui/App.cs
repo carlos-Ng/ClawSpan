@@ -2,11 +2,11 @@ using System;
 using System.Drawing;
 using System.Text.Json;
 using System.Windows.Forms;
-using ClawShellUI.Channel;
-using ClawShellUI.Forms;
-using ClawShellUI.Models;
+using ClawSpanUI.Channel;
+using ClawSpanUI.Forms;
+using ClawSpanUI.Models;
 
-namespace ClawShellUI
+namespace ClawSpanUI
 {
 
 // App 继承 ApplicationContext，作为托盘应用的主控制器。
@@ -122,7 +122,7 @@ public class App : ApplicationContext
 	{
 		// 待确认时切换为警告图标并闪烁任务栏
 		_trayIcon.Icon = _iconAlert;
-		_trayIcon.Text = "ClawShell — 需要操作确认";
+		_trayIcon.Text = "ClawSpan — 需要操作确认";
 
 		var dlg = new ConfirmDialog(message);
 		dlg.ShowDialog();
@@ -163,7 +163,7 @@ public class App : ApplicationContext
 
 		var icon = new NotifyIcon {
 			Icon = _iconOffline,
-			Text = "ClawShell",
+			Text = "ClawSpan",
 			Visible = true,
 			ContextMenuStrip = menu,
 		};
@@ -187,20 +187,20 @@ public class App : ApplicationContext
 		_mainForm.Invoke(() => {
 			if (!_state.ChannelConnected) {
 				_trayIcon.Icon = _iconOffline;
-				_trayIcon.Text = "ClawShell — 未连接";
+				_trayIcon.Text = "ClawSpan — 未连接";
 			} else if (_state.VmState == "running" && _state.OpenClawState == "online") {
 				_trayIcon.Icon = _iconNormal;
 				_trayIcon.Text = _state.ChannelState == "active"
-					? "ClawShell — 工作中"
-					: "ClawShell — 就绪";
+					? "ClawSpan — 工作中"
+					: "ClawSpan — 就绪";
 			} else if (_state.VmState == "starting") {
 				_trayIcon.Icon = _iconNormal;
-				_trayIcon.Text = "ClawShell — VM 启动中";
+				_trayIcon.Text = "ClawSpan — VM 启动中";
 			} else {
 				_trayIcon.Icon = _iconOffline;
 				_trayIcon.Text = _state.VmState == "stopped"
-					? "ClawShell — VM 已停止"
-					: "ClawShell — OpenClaw 离线";
+					? "ClawSpan — VM 已停止"
+					: "ClawSpan — OpenClaw 离线";
 			}
 		});
 	}
@@ -251,4 +251,4 @@ public class App : ApplicationContext
 	}
 }
 
-} // namespace ClawShellUI
+} // namespace ClawSpanUI

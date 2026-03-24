@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 // ModuleManager 是 core 的内部模块管理器，负责所有插件的加载、初始化与生命周期管理。
@@ -125,4 +125,4 @@ private:
 };
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

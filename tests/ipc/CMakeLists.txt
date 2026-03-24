@@ -15,7 +15,7 @@ target_include_directories(ipc_tests PRIVATE
 )
 
 target_link_libraries(ipc_tests PRIVATE
-    clawshell_headers
+    clawspan_headers
     GTest::gtest
     GTest::gtest_main
 )

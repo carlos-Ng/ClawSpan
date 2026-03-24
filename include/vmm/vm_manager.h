@@ -6,7 +6,7 @@
 // 创建（从 Ubuntu rootfs tarball 导入）、启动、停止、快照、恢复、销毁。
 //
 // 使用方式：
-//   auto mgr = clawshell::vmm::createVMManager();
+//   auto mgr = clawspan::vmm::createVMManager();
 //   mgr->createDistro(cfg);
 //   mgr->startDistro(L"agent-enclave-vm");
 
@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace vmm {
 
 // ── DistroConfig ─────────────────────────────────────────────────────────────
@@ -184,4 +184,4 @@ public:
 std::unique_ptr<VMManagerInterface> createVMManager();
 
 } // namespace vmm
-} // namespace clawshell
+} // namespace clawspan

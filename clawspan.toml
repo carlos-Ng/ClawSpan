@@ -1,5 +1,5 @@
-# ClawShell daemon 配置文件（Windows 版本 - 开发快速启动）
-# 运行方式：cd /path/to/ClawShell && .\build\Debug\claw_shell_service.exe -f
+# ClawSpan daemon 配置文件（Windows 版本 - 开发快速启动）
+# 运行方式：cd /path/to/ClawSpan && .\build\Debug\claw_span_service.exe -f
 # 注意：socket_path 使用 Windows Named Pipe 格式，无需事先创建文件
 
 [daemon]

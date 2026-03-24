@@ -1,15 +1,15 @@
-// main.cc — claw_shell_vmm.exe 入口点
+// main.cc — claw_span_vmm.exe 入口点
 //
-// 每个 WSL2 distro 对应一个 claw_shell_vmm.exe 实例，负责 VM 生命周期管理：
+// 每个 WSL2 distro 对应一个 claw_span_vmm.exe 实例，负责 VM 生命周期管理：
 //   - 通过 Channel 1 Named Pipe 连接 daemon，上报 distro 状态
 //   - 接收 daemon 的管理命令（启动/停止/快照等）
 //   - Watchdog 监控 distro 健康状态
 //
 // 注意：VM 数据通路（capability 调用）由 daemon 的 VsockServer 直接处理，
-// claw_shell_vmm.exe 不参与数据转发。
+// claw_span_vmm.exe 不参与数据转发。
 //
 // 用法:
-//   claw_shell_vmm.exe --distro ClawShell [--daemon-pipe \\.\pipe\crew-shell-service]
+//   claw_span_vmm.exe --distro ClawSpan [--daemon-pipe \\.\pipe\crew-shell-service]
 //                      [--log-level info] [-f]
 
 #include "vmm_app.h"
@@ -22,13 +22,13 @@
 #include <iostream>
 #include <string>
 
-#ifndef CLAWSHELL_VERSION
-#define CLAWSHELL_VERSION "0.1.1"
+#ifndef CLAWSPAN_VERSION
+#define CLAWSPAN_VERSION "0.1.1"
 #endif
 
-static bool parseArgs(int argc, char** argv, clawshell::vmm::VmmConfig& config)
+static bool parseArgs(int argc, char** argv, clawspan::vmm::VmmConfig& config)
 {
-	cxxopts::Options opts("vmm", "ClawShell VMM — VM lifecycle manager for WSL2 distro");
+	cxxopts::Options opts("vmm", "ClawSpan VMM — VM lifecycle manager for WSL2 distro");
 
 	opts.add_options()
 		("d,distro",
@@ -60,7 +60,7 @@ static bool parseArgs(int argc, char** argv, clawshell::vmm::VmmConfig& config)
 		return false;
 	}
 	if (result.count("version")) {
-		std::cout << "vmm " << CLAWSHELL_VERSION << "\n";
+		std::cout << "vmm " << CLAWSPAN_VERSION << "\n";
 		return false;
 	}
 
@@ -80,12 +80,12 @@ static bool parseArgs(int argc, char** argv, clawshell::vmm::VmmConfig& config)
 
 int main(int argc, char** argv)
 {
-	clawshell::vmm::VmmConfig config;
+	clawspan::vmm::VmmConfig config;
 	if (!parseArgs(argc, argv, config)) {
 		return EXIT_SUCCESS;
 	}
 
-	clawshell::vmm::VmmApp app;
+	clawspan::vmm::VmmApp app;
 	auto status = app.init(std::move(config));
 	if (!status.ok()) {
 		LOG_ERROR("vmm init failed: {}", status.message);

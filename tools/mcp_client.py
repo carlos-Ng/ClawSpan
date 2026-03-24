@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-mcp_client.py — ClawShell MCP 测试客户端
+mcp_client.py — ClawSpan MCP 测试客户端
 
 通过 MCP 协议（stdio 传输）连接 mcp_server.py，覆盖完整调用链：
   mcp_client.py  →  MCP stdio  →  mcp_server.py  →  IPC  →  crew-shell-service
@@ -374,7 +374,7 @@ async def run_interactive(
 ) -> None:
     print(textwrap.dedent(f"""
     {C.BOLD}┌──────────────────────────────────────────────────────────────┐
-    │  ClawShell MCP 测试客户端                                 │
+    │  ClawSpan MCP 测试客户端                                 │
     │  输入 help 查看用法，tools 列出所有工具，quit 退出           │
     └──────────────────────────────────────────────────────────────┘{C.RESET}
     """))
@@ -477,7 +477,7 @@ async def async_main(args: argparse.Namespace) -> None:
     # 构造服务器启动参数，将 socket 路径通过环境变量传给 mcp_server.py
     env = {**os.environ}
     if args.sock:
-        env["CLAWSHELL_SOCK"] = args.sock
+        env["CLAWSPAN_SOCK"] = args.sock
 
     server_params = StdioServerParameters(
         command=sys.executable,
@@ -486,7 +486,7 @@ async def async_main(args: argparse.Namespace) -> None:
     )
 
     print(f"  MCP server : {server_script}")
-    print(f"  Daemon sock: {env.get('CLAWSHELL_SOCK', '/tmp/crew-shell-service.sock')}\n")
+    print(f"  Daemon sock: {env.get('CLAWSPAN_SOCK', '/tmp/crew-shell-service.sock')}\n")
 
     try:
         async with stdio_client(server_params) as (read, write):
@@ -518,7 +518,7 @@ async def async_main(args: argparse.Namespace) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="mcp_client.py",
-        description="ClawShell MCP 测试客户端（完整链路：MCP → mcp_server → IPC → daemon）",
+        description="ClawSpan MCP 测试客户端（完整链路：MCP → mcp_server → IPC → daemon）",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=textwrap.dedent("""
             示例:

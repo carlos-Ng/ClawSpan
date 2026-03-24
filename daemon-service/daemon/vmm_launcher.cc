@@ -15,20 +15,20 @@
 #  error "Platform not supported"
 #endif
 
-namespace clawshell {
+namespace clawspan {
 namespace daemon {
 
 // ── resolveExePath ──────────────────────────────────────────────────────────
 
-/// 解析 claw_shell_vmm.exe 路径。如果 config.exe_path 非空则直接使用，
-/// 否则在 daemon 同目录查找 claw_shell_vmm.exe。
+/// 解析 claw_span_vmm.exe 路径。如果 config.exe_path 非空则直接使用，
+/// 否则在 daemon 同目录查找 claw_span_vmm.exe。
 static std::string resolveExePath(const std::string& configured_path)
 {
 	if (!configured_path.empty()) {
 		return configured_path;
 	}
 
-	// 从 daemon（当前进程）的可执行文件路径推导 claw_shell_vmm.exe 位置
+	// 从 daemon（当前进程）的可执行文件路径推导 claw_span_vmm.exe 位置
 	char buf[MAX_PATH] = {};
 	DWORD len = ::GetModuleFileNameA(nullptr, buf, MAX_PATH);
 	if (len == 0 || len >= MAX_PATH) {
@@ -36,7 +36,7 @@ static std::string resolveExePath(const std::string& configured_path)
 	}
 
 	std::filesystem::path daemon_dir = std::filesystem::path(buf).parent_path();
-	std::filesystem::path vmm_path  = daemon_dir / "claw_shell_vmm.exe";
+	std::filesystem::path vmm_path  = daemon_dir / "claw_span_vmm.exe";
 
 	if (std::filesystem::exists(vmm_path)) {
 		return vmm_path.string();
@@ -65,7 +65,7 @@ struct VmmLauncher::Implement
 	uint32_t             rapid_restart_count_ = 0;
 	std::chrono::steady_clock::time_point last_start_time_;
 
-	// ── 启动 claw_shell_vmm.exe 子进程 ──────────────────────────────────
+	// ── 启动 claw_span_vmm.exe 子进程 ──────────────────────────────────
 
 	bool launchProcess()
 	{
@@ -78,13 +78,13 @@ struct VmmLauncher::Implement
 			+ " --daemon-pipe \"" + config_.daemon_pipe + "\""
 			+ " --log-level " + config_.log_level;
 
-		LOG_INFO("vmm_launcher: starting claw_shell_vmm.exe: {}", cmd);
+		LOG_INFO("vmm_launcher: starting claw_span_vmm.exe: {}", cmd);
 
 		STARTUPINFOA si = {};
 		si.cb = sizeof(si);
 		PROCESS_INFORMATION pi = {};
 
-		// 使用 CREATE_NEW_PROCESS_GROUP 使 claw_shell_vmm.exe 可以接收 Ctrl+Break
+		// 使用 CREATE_NEW_PROCESS_GROUP 使 claw_span_vmm.exe 可以接收 Ctrl+Break
 		BOOL ok = ::CreateProcessA(
 			nullptr,
 			cmd.data(),
@@ -130,7 +130,7 @@ struct VmmLauncher::Implement
 		// 不需要线程句柄
 		::CloseHandle(pi.hThread);
 
-		LOG_INFO("vmm_launcher: claw_shell_vmm.exe started, pid={}", process_id_);
+		LOG_INFO("vmm_launcher: claw_span_vmm.exe started, pid={}", process_id_);
 		return true;
 #else
 		return false;
@@ -185,7 +185,7 @@ struct VmmLauncher::Implement
 				if (process_handle_ != INVALID_HANDLE_VALUE) {
 					DWORD exit_code = 0;
 					::GetExitCodeProcess(process_handle_, &exit_code);
-					LOG_WARN("vmm_launcher: claw_shell_vmm.exe exited, code={}, pid={}",
+					LOG_WARN("vmm_launcher: claw_span_vmm.exe exited, code={}, pid={}",
 					         exit_code, process_id_);
 
 					::CloseHandle(process_handle_);
@@ -254,10 +254,10 @@ struct VmmLauncher::Implement
 			return;
 		}
 
-		LOG_INFO("vmm_launcher: sending Ctrl+Break to claw_shell_vmm.exe pid={}",
+		LOG_INFO("vmm_launcher: sending Ctrl+Break to claw_span_vmm.exe pid={}",
 		         process_id_);
 
-		// 向 claw_shell_vmm.exe 的进程组发送 CTRL_BREAK_EVENT
+		// 向 claw_span_vmm.exe 的进程组发送 CTRL_BREAK_EVENT
 		if (!::GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, process_id_)) {
 			LOG_WARN("vmm_launcher: GenerateConsoleCtrlEvent failed: {}",
 			         ::GetLastError());
@@ -268,7 +268,7 @@ struct VmmLauncher::Implement
 			process_handle_, config_.stop_timeout_ms);
 
 		if (wait == WAIT_TIMEOUT) {
-		LOG_WARN("vmm_launcher: claw_shell_vmm.exe did not exit within {}ms, "
+		LOG_WARN("vmm_launcher: claw_span_vmm.exe did not exit within {}ms, "
 		         "terminating",
 			         config_.stop_timeout_ms);
 			::TerminateProcess(process_handle_, 1);
@@ -277,7 +277,7 @@ struct VmmLauncher::Implement
 
 		DWORD exit_code = 0;
 		::GetExitCodeProcess(process_handle_, &exit_code);
-		LOG_INFO("vmm_launcher: claw_shell_vmm.exe stopped, exit_code={}", exit_code);
+		LOG_INFO("vmm_launcher: claw_span_vmm.exe stopped, exit_code={}", exit_code);
 
 		::CloseHandle(process_handle_);
 		process_handle_ = INVALID_HANDLE_VALUE;
@@ -307,21 +307,21 @@ Status VmmLauncher::start(VmmLauncherConfig config)
 
 	impl_->config_ = std::move(config);
 
-	// 解析 claw_shell_vmm.exe 路径
+	// 解析 claw_span_vmm.exe 路径
 	impl_->resolved_exe_path_ = resolveExePath(impl_->config_.exe_path);
 	if (impl_->resolved_exe_path_.empty()) {
-		LOG_ERROR("vmm_launcher: claw_shell_vmm.exe not found");
-		return Status(Status::IO_ERROR, "claw_shell_vmm.exe not found");
+		LOG_ERROR("vmm_launcher: claw_span_vmm.exe not found");
+		return Status(Status::IO_ERROR, "claw_span_vmm.exe not found");
 	}
 
 	if (!std::filesystem::exists(impl_->resolved_exe_path_)) {
-		LOG_ERROR("vmm_launcher: claw_shell_vmm.exe does not exist at '{}'",
+		LOG_ERROR("vmm_launcher: claw_span_vmm.exe does not exist at '{}'",
 		          impl_->resolved_exe_path_);
 		return Status(Status::IO_ERROR,
-		              "claw_shell_vmm.exe does not exist: " + impl_->resolved_exe_path_);
+		              "claw_span_vmm.exe does not exist: " + impl_->resolved_exe_path_);
 	}
 
-	LOG_INFO("vmm_launcher: using claw_shell_vmm.exe at '{}'", impl_->resolved_exe_path_);
+	LOG_INFO("vmm_launcher: using claw_span_vmm.exe at '{}'", impl_->resolved_exe_path_);
 
 #ifdef _WIN32
 	// 创建停止事件
@@ -341,7 +341,7 @@ Status VmmLauncher::start(VmmLauncherConfig config)
 		impl_->job_handle_ = INVALID_HANDLE_VALUE;
 	}
 #endif
-		return Status(Status::IO_ERROR, "claw_shell_vmm.exe launch failed");
+		return Status(Status::IO_ERROR, "claw_span_vmm.exe launch failed");
 	}
 
 	// 启动监控线程
@@ -396,4 +396,4 @@ bool VmmLauncher::isRunning() const
 }
 
 } // namespace daemon
-} // namespace clawshell
+} // namespace clawspan

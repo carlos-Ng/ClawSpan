@@ -6,7 +6,7 @@
 
 #include <string_view>
 
-namespace clawshell {
+namespace clawspan {
 namespace security {
 
 // ─── 模块身份 ────────────────────────────────────────────────────────────────
@@ -269,8 +269,8 @@ core::SecurityAction SecurityFilter::postHook(const core::SecurityContext& /*ctx
 }
 
 } // namespace security
-} // namespace clawshell
+} // namespace clawspan
 
 // ─── 模块导出 ────────────────────────────────────────────────────────────────
 
-CLAWSHELL_MODULE_EXPORT(clawshell::security::SecurityFilter)
+CLAWSPAN_MODULE_EXPORT(clawspan::security::SecurityFilter)

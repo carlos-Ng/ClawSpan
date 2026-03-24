@@ -1,4 +1,4 @@
-# ClawShell Python tools 依赖（Windows 版本）
+# ClawSpan Python tools 依赖（Windows 版本）
 #
 # 安装：pip install -r tools\requirements.txt
 #

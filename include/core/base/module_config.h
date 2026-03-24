@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <variant>
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 // ModuleConfig 是模块初始化参数的泛型载体，以 flat key-value 形式存储配置项。
@@ -71,4 +71,4 @@ private:
 };
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

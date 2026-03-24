@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace capability {
 namespace ax {
 
@@ -75,4 +75,4 @@ struct AXWindowInfo
 
 } // namespace ax
 } // namespace capability
-} // namespace clawshell
+} // namespace clawspan

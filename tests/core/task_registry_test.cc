@@ -9,7 +9,7 @@
 #include <thread>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 namespace {
 
@@ -253,4 +253,4 @@ TEST_F(TaskRegistryTest, ConcurrentBeginEndDoesNotCrash)
 
 } // namespace
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

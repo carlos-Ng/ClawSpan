@@ -11,7 +11,7 @@
 #include <string>
 #include <thread>
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 namespace {
 
@@ -21,7 +21,7 @@ static std::atomic<int> g_pipe_counter{0};
 std::string uniquePipeName()
 {
 	int id = g_pipe_counter.fetch_add(1);
-	return std::string("\\\\.\\pipe\\clawshell-frame-test-") + std::to_string(id);
+	return std::string("\\\\.\\pipe\\clawspan-frame-test-") + std::to_string(id);
 }
 
 // Helper: 创建一对连接好的 Named Pipe 句柄用于测试
@@ -214,4 +214,4 @@ TEST_F(FrameCodecTest, UnicodePayload)
 
 } // namespace
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan

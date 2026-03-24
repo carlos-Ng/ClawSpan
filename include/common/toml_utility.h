@@ -4,7 +4,7 @@
 #include <string>
 #include <toml++/toml.h>
 
-namespace clawshell {
+namespace clawspan {
 
 static bool parseU64FromString(const std::string& s, u64& out)
 {

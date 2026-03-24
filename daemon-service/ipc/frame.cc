@@ -6,7 +6,7 @@
 #  error "Platform not supported: add POSIX read/write/arpa/inet.h implementation here"
 #endif
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 
 // ─── 字节序辅助 ───────────────────────────────────────────────────────────────
@@ -229,4 +229,4 @@ Status FrameCodec::writeFrameAsync(HANDLE handle, const std::string& data, HANDL
 #endif
 
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan

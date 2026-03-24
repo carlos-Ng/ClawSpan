@@ -9,7 +9,7 @@
 #include <windows.h>
 #include <sddl.h>
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 
 // PipeSecurityContext 为 Named Pipe 构造仅允许当前用户访问的 DACL。
@@ -93,6 +93,6 @@ struct PipeSecurityContext
 };
 
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan
 
 #endif // _WIN32

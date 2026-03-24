@@ -8,7 +8,7 @@
 // 绑定的监听器。宿主机必须绑定到 WSL2 VM 的实际 RuntimeId（GUID）才能收到连接。
 // 通过 setVmId() 在 start() 之前设置，若未设置则回退到 HV_GUID_WILDCARD。
 //
-// 上层协议：ClawShell FrameCodec（4B 大端长度前缀 + UTF-8 JSON body）。
+// 上层协议：ClawSpan FrameCodec（4B 大端长度前缀 + UTF-8 JSON body）。
 // 每收到完整帧，回调注册的 FrameHandler。
 //
 // 架构：
@@ -26,7 +26,7 @@
 #include <memory>
 #include <string>
 
-namespace clawshell {
+namespace clawspan {
 namespace vmm {
 
 // ── 前向声明 ──────────────────────────────────────────────────────────────────
@@ -143,4 +143,4 @@ std::unique_ptr<VsockServerInterface> createVsockServer(
 	ConnectionHandler conn_handler = nullptr);
 
 } // namespace vmm
-} // namespace clawshell
+} // namespace clawspan

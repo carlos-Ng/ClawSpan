@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ClawShellUI.Channel
+namespace ClawSpanUI.Channel
 {
 
 // DaemonChannel 负责与 daemon 的 Channel 2（确认通道）通信。
@@ -276,4 +276,4 @@ public class DaemonChannel : IDisposable
 	}
 }
 
-} // namespace ClawShellUI.Channel
+} // namespace ClawSpanUI.Channel

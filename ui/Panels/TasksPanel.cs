@@ -1,9 +1,9 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using ClawShellUI.Models;
+using ClawSpanUI.Models;
 
-namespace ClawShellUI.Panels
+namespace ClawSpanUI.Panels
 {
 
 // TasksPanel 展示当前任务的操作记录、已缓存的 Intent Fingerprint
@@ -264,4 +264,4 @@ public class TasksPanel : UserControl
 	}
 }
 
-} // namespace ClawShellUI.Panels
+} // namespace ClawSpanUI.Panels

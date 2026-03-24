@@ -21,7 +21,7 @@
 #  include <windows.h>
 #endif
 
-namespace clawshell {
+namespace clawspan {
 namespace daemon {
 
 // VmmLauncherConfig -- vmm.exe 启动参数。
@@ -31,7 +31,7 @@ struct VmmLauncherConfig
 	std::string exe_path;
 
 	// WSL2 distro 名称，传给 vmm.exe --distro。
-	std::string distro_name = "ClawShell";
+	std::string distro_name = "ClawSpan";
 
 	// daemon Channel 1 Named Pipe 路径，传给 vmm.exe --daemon-pipe。
 	std::string daemon_pipe = "\\\\.\\pipe\\crew-shell-service";
@@ -92,4 +92,4 @@ private:
 };
 
 } // namespace daemon
-} // namespace clawshell
+} // namespace clawspan

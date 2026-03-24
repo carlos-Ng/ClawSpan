@@ -2,7 +2,7 @@
 
 #include "common/status.h"
 
-namespace clawshell {
+namespace clawspan {
 
 // StatusConverterInterface 定义将 Status 转换为外部错误类型 T 的通用接口。
 // 各集成层（IPC、gRPC 等）实现各自具体的转换逻辑，与 common 层完全解耦。
@@ -22,4 +22,4 @@ public:
 	virtual T convert(const Status& status) const = 0;
 };
 
-} // namespace clawshell
+} // namespace clawspan

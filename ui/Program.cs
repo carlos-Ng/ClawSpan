@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace ClawShellUI
+namespace ClawSpanUI
 {
 
 // Program 是应用入口，配置 WinForms 运行环境并启动 App。
@@ -16,7 +16,7 @@ internal static class Program
 	{
 		// UI 单实例保护：已有实例运行时直接退出，避免多个托盘进程并发连接 daemon。
 		bool createdNew = false;
-		_singleInstanceMutex = new Mutex(true, @"Local\ClawShellUI", out createdNew);
+		_singleInstanceMutex = new Mutex(true, @"Local\ClawSpanUI", out createdNew);
 		if (!createdNew) {
 			_singleInstanceMutex.Dispose();
 			return;
@@ -38,4 +38,4 @@ internal static class Program
 	}
 }
 
-} // namespace ClawShellUI
+} // namespace ClawSpanUI

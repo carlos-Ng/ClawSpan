@@ -15,7 +15,7 @@
 #include <memory>
 #include <string>
 
-namespace clawshell {
+namespace clawspan {
 namespace vmm {
 
 // VmmConfig — vmm.exe 运行时配置，由命令行参数填充。
@@ -64,4 +64,4 @@ private:
 };
 
 } // namespace vmm
-} // namespace clawshell
+} // namespace clawspan

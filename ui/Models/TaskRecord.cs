@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ClawShellUI.Models
+namespace ClawSpanUI.Models
 {
 
 // TaskRecord 表示一个完整的 Agent 任务，包含 Root Task 和全部操作记录。
@@ -45,4 +45,4 @@ public class TaskRecord
 	public int TotalCount => Operations.Count;
 }
 
-} // namespace ClawShellUI.Models
+} // namespace ClawSpanUI.Models

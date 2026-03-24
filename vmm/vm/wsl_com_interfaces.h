@@ -16,7 +16,7 @@
 #include <unknwn.h>
 #include <winerror.h>
 
-namespace clawshell {
+namespace clawspan {
 namespace vmm {
 
 // ── WSL2 COM CLSID / IID ──────────────────────────────────────────────────
@@ -134,4 +134,4 @@ public:
 };
 
 } // namespace vmm
-} // namespace clawshell
+} // namespace clawspan

@@ -1,5 +1,5 @@
-# ClawShell daemon 配置文件（dist 目录专用）
-# 运行方式：cd dist && .\bin\claw_shell_service.exe -f -c config\clawshell.toml
+# ClawSpan daemon 配置文件（dist 目录专用）
+# 运行方式：cd dist && .\bin\claw_span_service.exe -f -c config\clawspan.toml
 #
 # 注意：此配置的路径相对于 dist 目录，须在 dist 下启动。
 
@@ -27,10 +27,10 @@ enabled = true
 # ── VMM (VM 生命周期管理) ──────────────────────────────────────────────────
 
 [vmm]
-distro_name = "ClawShell"
+distro_name = "ClawSpan"
 # rootfs_path: rootfs tarball 路径（首次自动导入用，留空不自动导入）
 # rootfs_path = ""
-# exe_path: claw_shell_vmm.exe 路径（留空时从 daemon 同目录查找）
+# exe_path: claw_span_vmm.exe 路径（留空时从 daemon 同目录查找）
 # exe_path = ""
 auto_start  = true
 

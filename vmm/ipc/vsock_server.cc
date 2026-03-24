@@ -21,7 +21,7 @@
 #include <winsock2.h>
 #pragma comment(lib, "ws2_32.lib")
 
-namespace clawshell {
+namespace clawspan {
 namespace vmm {
 
 // ── socket I/O 辅助函数 ─────────────────────────────────────────────────────
@@ -85,7 +85,7 @@ VsockConnection::VsockConnection(std::shared_ptr<VsockConnectionImpl> impl)
     : impl_(std::move(impl))
 {}
 
-// sendFrame 以 ClawShell FrameCodec 格式（4B 大端长度前缀 + UTF-8 JSON body）发送帧。
+// sendFrame 以 ClawSpan FrameCodec 格式（4B 大端长度前缀 + UTF-8 JSON body）发送帧。
 Status VsockConnection::sendFrame(const std::string& json)
 {
 	if (!impl_ || !impl_->alive) {
@@ -473,4 +473,4 @@ std::unique_ptr<VsockServerInterface> createVsockServer(
 }
 
 } // namespace vmm
-} // namespace clawshell
+} // namespace clawspan

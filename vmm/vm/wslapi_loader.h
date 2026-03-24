@@ -13,7 +13,7 @@
 
 #include <cstdlib>
 
-namespace clawshell {
+namespace clawspan {
 namespace vmm {
 
 // ── 函数指针类型 ─────────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ private:
 };
 
 } // namespace vmm
-} // namespace clawshell
+} // namespace clawspan
 
 // ── 内联替换宏 ─────────────────────────────────────────────────────────────
 // 让已有的 WslIsDistributionRegistered(...) 等裸调用不报链接错误。
@@ -90,20 +90,20 @@ private:
 
 inline BOOL WslIsDistributionRegistered(PCWSTR name)
 {
-	auto& api = clawshell::vmm::WslApi::instance();
+	auto& api = clawspan::vmm::WslApi::instance();
 	return api.IsDistributionRegistered ? api.IsDistributionRegistered(name) : FALSE;
 }
 
 inline HRESULT WslRegisterDistribution(PCWSTR name, PCWSTR tarGz)
 {
-	auto& api = clawshell::vmm::WslApi::instance();
+	auto& api = clawspan::vmm::WslApi::instance();
 	return api.RegisterDistribution ? api.RegisterDistribution(name, tarGz)
 	                                : E_NOTIMPL;
 }
 
 inline HRESULT WslConfigureDistribution(PCWSTR name, ULONG uid, int flags)
 {
-	auto& api = clawshell::vmm::WslApi::instance();
+	auto& api = clawspan::vmm::WslApi::instance();
 	return api.ConfigureDistribution ? api.ConfigureDistribution(name, uid, flags)
 	                                 : E_NOTIMPL;
 }
@@ -112,7 +112,7 @@ inline HRESULT WslLaunch(PCWSTR name, PCWSTR cmd, BOOL useCwd,
                           HANDLE stdIn, HANDLE stdOut, HANDLE stdErr,
                           HANDLE* process)
 {
-	auto& api = clawshell::vmm::WslApi::instance();
+	auto& api = clawspan::vmm::WslApi::instance();
 	return api.Launch ? api.Launch(name, cmd, useCwd, stdIn, stdOut, stdErr, process)
 	                  : E_NOTIMPL;
 }

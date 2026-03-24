@@ -12,7 +12,7 @@
 #include <fstream>
 #include <string>
 
-namespace clawshell {
+namespace clawspan {
 namespace security {
 namespace {
 
@@ -38,7 +38,7 @@ std::string writeTempToml(const std::string& content)
 {
 	// 使用固定名称在 temp 目录（测试结束后清理）
 	std::string path = std::string(std::getenv("TEMP") ? std::getenv("TEMP") : ".")
-	                 + "\\clawshell_security_filter_test.toml";
+	                 + "\\clawspan_security_filter_test.toml";
 	std::ofstream f(path, std::ios::trunc);
 	f << content;
 	f.close();
@@ -364,4 +364,4 @@ reason = "blocked"
 
 } // namespace
 } // namespace security
-} // namespace clawshell
+} // namespace clawspan

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 # ─── 项目声明 ─────────────────────────────────────────────────────────────────
 # Windows 平台无 ObjC++，只需 CXX。
 # 未来合并 macOS 代码时，在此添加 if(APPLE) 分支并补充 OBJCXX 语言。
-project(ClawShell VERSION 0.1.1 LANGUAGES CXX)
+project(ClawSpan VERSION 0.1.1 LANGUAGES CXX)
 
 # ─── Global C++ standard ──────────────────────────────────────────────────────
 
@@ -76,44 +76,44 @@ target_link_libraries(third_party INTERFACE
 
 # ─── Project public headers ───────────────────────────────────────────────────
 
-# clawshell_headers: project-wide include/ + all third-party headers.
+# clawspan_headers: project-wide include/ + all third-party headers.
 # Link against this target to get everything needed by most modules.
-add_library(clawshell_headers INTERFACE)
-target_include_directories(clawshell_headers INTERFACE
+add_library(clawspan_headers INTERFACE)
+target_include_directories(clawspan_headers INTERFACE
     ${CMAKE_SOURCE_DIR}/include
 )
-target_link_libraries(clawshell_headers INTERFACE third_party)
+target_link_libraries(clawspan_headers INTERFACE third_party)
 
 # ─── Core library ────────────────────────────────────────────────────────────
 
-add_library(clawshell_core STATIC
+add_library(clawspan_core STATIC
     daemon-service/core/module_config.cc
     daemon-service/core/security_chain.cc
     daemon-service/core/module_manager.cc
     daemon-service/core/capability_service.cc
     daemon-service/core/task_registry.cc
 )
-target_link_libraries(clawshell_core PUBLIC clawshell_headers)
+target_link_libraries(clawspan_core PUBLIC clawspan_headers)
 
 # ─── IPC library ─────────────────────────────────────────────────────────────
 # 平台无关部分（帧编解码）始终编译。
 # 平台相关的 IPC 实现由 if(WIN32)/if(APPLE) 分支选择，对应同一套 IpcServerInterface 抽象。
 
-add_library(clawshell_ipc STATIC
+add_library(clawspan_ipc STATIC
     daemon-service/ipc/frame.cc
     daemon-service/ipc/ui_service.cc
 )
 
 if(WIN32)
-    target_sources(clawshell_ipc PRIVATE
+    target_sources(clawspan_ipc PRIVATE
         daemon-service/ipc/windows_ipc_server.cc
         daemon-service/ipc/windows_ipc_client.cc
     )
 # if(APPLE) 分支：未来合并 macOS 代码时在此添加 unix_ipc_server.cc / unix_ipc_client.cc
 endif()
 
-target_include_directories(clawshell_ipc PRIVATE ${CMAKE_SOURCE_DIR}/daemon-service/ipc)
-target_link_libraries(clawshell_ipc PUBLIC clawshell_headers)
+target_include_directories(clawspan_ipc PRIVATE ${CMAKE_SOURCE_DIR}/daemon-service/ipc)
+target_link_libraries(clawspan_ipc PUBLIC clawspan_headers)
 
 # ─── Capability modules ───────────────────────────────────────────────────────
 
@@ -133,52 +133,52 @@ add_library(security_filter SHARED
 target_include_directories(security_filter PRIVATE
     ${CMAKE_SOURCE_DIR}/daemon-service/security/filter
 )
-target_link_libraries(security_filter PRIVATE clawshell_core clawshell_headers)
+target_link_libraries(security_filter PRIVATE clawspan_core clawspan_headers)
 
 # ─── Daemon executable ───────────────────────────────────────────────────────
 
-add_executable(claw_shell_service
+add_executable(claw_span_service
     daemon-service/daemon/main.cc
     daemon-service/daemon/daemon.cc
     daemon-service/daemon/vmm_launcher.cc
 )
-target_include_directories(claw_shell_service PRIVATE
+target_include_directories(claw_span_service PRIVATE
     ${CMAKE_SOURCE_DIR}/daemon-service/daemon
     ${CMAKE_SOURCE_DIR}/daemon-service
 )
-target_link_libraries(claw_shell_service PRIVATE
-    clawshell_core
-    clawshell_ipc
-    clawshell_vmm
-    clawshell_headers
+target_link_libraries(claw_span_service PRIVATE
+    clawspan_core
+    clawspan_ipc
+    clawspan_vmm
+    clawspan_headers
 )
-target_compile_definitions(claw_shell_service PRIVATE
-    CLAWSHELL_VERSION="${PROJECT_VERSION}"
+target_compile_definitions(claw_span_service PRIVATE
+    CLAWSPAN_VERSION="${PROJECT_VERSION}"
 )
 if(WIN32)
     # 方案 B：daemon 以管理员权限运行，避免 HCS RuntimeId 发现权限不足。
-    target_link_options(claw_shell_service PRIVATE
+    target_link_options(claw_span_service PRIVATE
         "/MANIFESTUAC:level='requireAdministrator' uiAccess='false'"
     )
 endif()
 
 # ─── UI (C# WinForms) ────────────────────────────────────────────────────────
-# clawshell_ui 随 ALL_BUILD 一并构建，与 daemon 平行执行。
+# clawspan_ui 随 ALL_BUILD 一并构建，与 daemon 平行执行。
 # dist target 会进一步 publish 为自包含单文件 exe，输出到 dist/bin/。
 
 find_program(DOTNET_EXECUTABLE dotnet)
 if(NOT DOTNET_EXECUTABLE)
-    message(WARNING "dotnet not found — clawshell_ui target and UI packaging skipped")
+    message(WARNING "dotnet not found — clawspan_ui target and UI packaging skipped")
 else()
     # .NET 只接受 Debug / Release 两种配置名。
     # CMake 的 MinSizeRel / RelWithDebInfo 均映射到 Release。
     # DOTNET_CLI_UI_LANGUAGE=en-US：强制 dotnet CLI 输出英文，
     # 避免 Windows GBK 控制台下中文 UTF-8 输出乱码。
-    add_custom_target(clawshell_ui ALL
+    add_custom_target(clawspan_ui ALL
         COMMAND ${CMAKE_COMMAND} -E env DOTNET_CLI_UI_LANGUAGE=en-US
                 ${DOTNET_EXECUTABLE} build "${CMAKE_SOURCE_DIR}/ui"
                 -c $<IF:$<CONFIG:Debug>,Debug,Release> --nologo -v quiet
-        COMMENT "Building ClawShellUI (.NET 8 WinForms)"
+        COMMENT "Building ClawSpanUI (.NET 8 WinForms)"
         VERBATIM
     )
 endif()
@@ -186,48 +186,48 @@ endif()
 # ─── 发布目录 dist ───────────────────────────────────────────────────────────
 #
 # 用于手工测试与打包：将 daemon、dll、UI、config 复制到 dist/。
-# 结构：dist/bin/{claw_shell_service.exe, claw_shell_ui.exe}, dist/lib/*.dll, dist/config/*.toml
+# 结构：dist/bin/{claw_span_service.exe, claw_span_ui.exe}, dist/lib/*.dll, dist/config/*.toml
 #
 # 构建：cmake --build <build_dir> --target dist
-# 运行：cd dist && .\bin\claw_shell_service.exe -f -c clawshell.toml
+# 运行：cd dist && .\bin\claw_span_service.exe -f -c clawspan.toml
 
-set(CLAWSHELL_DIST_DIR "${CMAKE_SOURCE_DIR}/dist")
+set(CLAWSPAN_DIST_DIR "${CMAKE_SOURCE_DIR}/dist")
 
 # 按平台设置库文件扩展名与前缀
 if(WIN32)
-    set(CLAWSHELL_LIB_EXT ".dll")
-    set(CLAWSHELL_LIB_PREFIX "")
-    set(CLAWSHELL_EXE_EXT ".exe")
+    set(CLAWSPAN_LIB_EXT ".dll")
+    set(CLAWSPAN_LIB_PREFIX "")
+    set(CLAWSPAN_EXE_EXT ".exe")
 # if(APPLE) 分支：未来合并 macOS 代码时在此补充 .dylib 配置
 endif()
 
 add_custom_target(dist
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CLAWSHELL_DIST_DIR}/bin"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CLAWSHELL_DIST_DIR}/modules"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CLAWSHELL_DIST_DIR}/config"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CLAWSPAN_DIST_DIR}/bin"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CLAWSPAN_DIST_DIR}/modules"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CLAWSPAN_DIST_DIR}/config"
     # 可执行文件 → dist/bin/
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:claw_shell_service>
-        "${CLAWSHELL_DIST_DIR}/bin/claw_shell_service${CLAWSHELL_EXE_EXT}"
+        $<TARGET_FILE:claw_span_service>
+        "${CLAWSPAN_DIST_DIR}/bin/claw_span_service${CLAWSPAN_EXE_EXT}"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:clawshell_vmm_exe>
-        "${CLAWSHELL_DIST_DIR}/bin/claw_shell_vmm${CLAWSHELL_EXE_EXT}"
-    # 插件 DLL → dist/modules/（clawshell_dist.toml 中 module_dir = "modules"）
+        $<TARGET_FILE:clawspan_vmm_exe>
+        "${CLAWSPAN_DIST_DIR}/bin/claw_span_vmm${CLAWSPAN_EXE_EXT}"
+    # 插件 DLL → dist/modules/（clawspan_dist.toml 中 module_dir = "modules"）
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:capability_ax>
-        "${CLAWSHELL_DIST_DIR}/modules/${CLAWSHELL_LIB_PREFIX}capability_ax${CLAWSHELL_LIB_EXT}"
+        "${CLAWSPAN_DIST_DIR}/modules/${CLAWSPAN_LIB_PREFIX}capability_ax${CLAWSPAN_LIB_EXT}"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:security_filter>
-        "${CLAWSHELL_DIST_DIR}/modules/${CLAWSHELL_LIB_PREFIX}security_filter${CLAWSHELL_LIB_EXT}"
+        "${CLAWSPAN_DIST_DIR}/modules/${CLAWSPAN_LIB_PREFIX}security_filter${CLAWSPAN_LIB_EXT}"
     # 配置文件 → dist/config/
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/config/clawshell_dist.toml"
-        "${CLAWSHELL_DIST_DIR}/config/clawshell.toml"
+        "${CMAKE_SOURCE_DIR}/config/clawspan_dist.toml"
+        "${CLAWSPAN_DIST_DIR}/config/clawspan.toml"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/config/security_filter_rules.toml"
-        "${CLAWSHELL_DIST_DIR}/config/security_filter_rules.toml"
+        "${CLAWSPAN_DIST_DIR}/config/security_filter_rules.toml"
     COMMENT "Populating dist/ (bin/exe, modules/dll, config/toml)"
-    DEPENDS claw_shell_service clawshell_vmm_exe capability_ax security_filter
+    DEPENDS claw_span_service clawspan_vmm_exe capability_ax security_filter
 )
 
 if(DOTNET_EXECUTABLE)
@@ -237,36 +237,36 @@ if(DOTNET_EXECUTABLE)
                 -r win-x64 -c Release
                 -p:PublishSingleFile=true -p:SelfContained=true
                 --nologo -v quiet
-                -o "${CLAWSHELL_DIST_DIR}/bin"
-        COMMENT "Publishing ClawShellUI to dist/bin"
+                -o "${CLAWSPAN_DIST_DIR}/bin"
+        COMMENT "Publishing ClawSpanUI to dist/bin"
         VERBATIM
     )
-    add_dependencies(dist clawshell_ui)
+    add_dependencies(dist clawspan_ui)
 endif()
 
 # ─── Release 打包 ────────────────────────────────────────────────────────────
 #
-# 将 dist/bin/ 下所有文件打包为 clawshell-windows-<version>.zip。
-# 版本约定：Git tag 带 v（如 v0.1.0），包名不带 v（如 clawshell-windows-0.1.0.zip）。
+# 将 dist/bin/ 下所有文件打包为 clawspan-windows-<version>.zip。
+# 版本约定：Git tag 带 v（如 v0.1.0），包名不带 v（如 clawspan-windows-0.1.0.zip）。
 # 用法：cmake --build build --target release
 #
-# 输出：${CMAKE_SOURCE_DIR}/clawshell-windows-${PROJECT_VERSION}.zip
+# 输出：${CMAKE_SOURCE_DIR}/clawspan-windows-${PROJECT_VERSION}.zip
 # 依赖：dist（须先运行 --target dist）
 
 if(WIN32)
-    set(CLAWSHELL_WINDOWS_ZIP
-        "${CMAKE_SOURCE_DIR}/clawshell-windows-${PROJECT_VERSION}.zip"
+    set(CLAWSPAN_WINDOWS_ZIP
+        "${CMAKE_SOURCE_DIR}/clawspan-windows-${PROJECT_VERSION}.zip"
     )
 
     add_custom_target(release
         COMMAND powershell -NoProfile -NonInteractive -Command
             "if ('$<CONFIG>' -ne 'Release') { Write-Host 'ERROR: release target requires --config Release.'; exit 1 }"
-        COMMAND ${CMAKE_COMMAND} -E echo "Packaging ${CLAWSHELL_WINDOWS_ZIP} ..."
+        COMMAND ${CMAKE_COMMAND} -E echo "Packaging ${CLAWSPAN_WINDOWS_ZIP} ..."
         COMMAND powershell -NoProfile -NonInteractive -Command
-            "Compress-Archive -Path '${CLAWSHELL_DIST_DIR}/*' -DestinationPath '${CLAWSHELL_WINDOWS_ZIP}' -Force"
-        COMMAND ${CMAKE_COMMAND} -E echo "Done: ${CLAWSHELL_WINDOWS_ZIP}"
+            "Compress-Archive -Path '${CLAWSPAN_DIST_DIR}/*' -DestinationPath '${CLAWSPAN_WINDOWS_ZIP}' -Force"
+        COMMAND ${CMAKE_COMMAND} -E echo "Done: ${CLAWSPAN_WINDOWS_ZIP}"
         DEPENDS dist
-        COMMENT "Creating clawshell-windows-${PROJECT_VERSION}.zip from dist/ (Release only)"
+        COMMENT "Creating clawspan-windows-${PROJECT_VERSION}.zip from dist/ (Release only)"
         VERBATIM
     )
 endif()

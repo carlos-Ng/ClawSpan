@@ -3,7 +3,7 @@
 #include "core/base/module_config.h"
 #include "common/error.h"
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 
 // ModuleType 标识模块的类别，供 ModuleManager 在注册时进行类型路由。
@@ -68,7 +68,7 @@ public:
 };
 
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 模块导出接口（供模块实现文件使用）
@@ -78,17 +78,17 @@ public:
 //
 // ModuleManager 在动态加载（Phase 3）时通过 dlsym("GetModuleInstance") 获取此函数指针，
 // 调用后得到模块实例的所有权（由 unique_ptr 接管）。
-using ModuleFactory = clawshell::core::ModuleInterface* (*)();
+using ModuleFactory = clawspan::core::ModuleInterface* (*)();
 
-// CLAWSHELL_MODULE_EXPORT 宏用于在模块实现文件中导出工厂函数。
+// CLAWSPAN_MODULE_EXPORT 宏用于在模块实现文件中导出工厂函数。
 //
 // 每个模块的 .cc 文件末尾调用一次此宏即可完成导出，无需手动编写 extern "C" 样板代码。
 //
 // 用法：
-//   CLAWSHELL_MODULE_EXPORT(AXCapability)
+//   CLAWSPAN_MODULE_EXPORT(AXCapability)
 //
 // 等价于：
-//   extern "C" clawshell::core::ModuleInterface* GetModuleInstance() {
+//   extern "C" clawspan::core::ModuleInterface* GetModuleInstance() {
 //       return new AXCapability();
 //   }
 //
@@ -97,14 +97,14 @@ using ModuleFactory = clawshell::core::ModuleInterface* (*)();
 //
 // Windows DLL 必须显式导出符号，否则 GetProcAddress 无法找到 GetModuleInstance。
 #ifdef _WIN32
-#  define CLAWSHELL_MODULE_EXPORT(ClassName)                                    \
-      extern "C" __declspec(dllexport) clawshell::core::ModuleInterface* GetModuleInstance() \
+#  define CLAWSPAN_MODULE_EXPORT(ClassName)                                    \
+      extern "C" __declspec(dllexport) clawspan::core::ModuleInterface* GetModuleInstance() \
       {                                                                         \
           return new ClassName();                                               \
       }
 #else
-#  define CLAWSHELL_MODULE_EXPORT(ClassName)                              \
-      extern "C" clawshell::core::ModuleInterface* GetModuleInstance()    \
+#  define CLAWSPAN_MODULE_EXPORT(ClassName)                              \
+      extern "C" clawspan::core::ModuleInterface* GetModuleInstance()    \
       {                                                                   \
           return new ClassName();                                         \
       }

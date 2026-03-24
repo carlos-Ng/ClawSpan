@@ -14,9 +14,9 @@
 #  error "Platform not supported: add POSIX pthread_sigmask/sigemptyset implementation here"
 #endif
 
-// CLAWSHELL_VERSION 是 daemon 的版本字符串，由 CMake 注入或回退到默认值。
-#ifndef CLAWSHELL_VERSION
-#define CLAWSHELL_VERSION "0.1.1"
+// CLAWSPAN_VERSION 是 daemon 的版本字符串，由 CMake 注入或回退到默认值。
+#ifndef CLAWSPAN_VERSION
+#define CLAWSPAN_VERSION "0.1.1"
 #endif
 
 // blockTerminationSignals Windows 下无信号掩码概念，空实现占位。
@@ -40,14 +40,14 @@ static bool acquireSingleInstanceMutex()
 	g_single_instance_mutex = ::CreateMutexA(
 	    nullptr,
 	    FALSE,
-	    "Global\\ClawShellDaemon");
+	    "Global\\ClawSpanDaemon");
 	if (g_single_instance_mutex == nullptr || g_single_instance_mutex == INVALID_HANDLE_VALUE) {
 		std::cerr << "error: failed to create single-instance mutex, GetLastError="
 		          << ::GetLastError() << "\n";
 		return false;
 	}
 	if (::GetLastError() == ERROR_ALREADY_EXISTS) {
-		std::cerr << "error: another claw_shell_service instance is already running\n";
+		std::cerr << "error: another claw_span_service instance is already running\n";
 		::CloseHandle(g_single_instance_mutex);
 		g_single_instance_mutex = INVALID_HANDLE_VALUE;
 		return false;
@@ -74,15 +74,15 @@ static void releaseSingleInstanceMutex()
 // 出参/返回:
 // - true:  解析成功，调用方继续执行。
 // - false: 遇到 --help 或 --version，已打印信息，调用方应退出（返回 0）。
-static bool parseArgs(int argc, char** argv, clawshell::daemon::DaemonConfig& config)
+static bool parseArgs(int argc, char** argv, clawspan::daemon::DaemonConfig& config)
 {
-	cxxopts::Options opts("claw_shell_service", "ClawShell daemon — secure capability host for AI agents");
+	cxxopts::Options opts("claw_span_service", "ClawSpan daemon — secure capability host for AI agents");
 
 	opts.add_options()
 	    ("c,config",
 	     "TOML 配置文件路径",
 	     cxxopts::value<std::string>()->default_value(
-	         clawshell::daemon::DaemonConfig::DEFAULT_CONFIG_PATH))
+	         clawspan::daemon::DaemonConfig::DEFAULT_CONFIG_PATH))
 	    ("f,foreground",
 	     "前台运行：日志输出到 stdout，不后台化",
 	     cxxopts::value<bool>()->default_value("false"))
@@ -115,7 +115,7 @@ static bool parseArgs(int argc, char** argv, clawshell::daemon::DaemonConfig& co
 		return false;
 	}
 	if (result.count("version")) {
-		std::cout << "claw_shell_service " << CLAWSHELL_VERSION << "\n";
+		std::cout << "claw_span_service " << CLAWSPAN_VERSION << "\n";
 		return false;
 	}
 
@@ -154,7 +154,7 @@ int main(int argc, char** argv)
 	// Daemon::run() 中的 SetConsoleCtrlHandler 处理。
 	blockTerminationSignals();
 
-	clawshell::daemon::DaemonConfig config;
+	clawspan::daemon::DaemonConfig config;
 	if (!parseArgs(argc, argv, config)) {
 		return EXIT_SUCCESS;
 	}
@@ -165,7 +165,7 @@ int main(int argc, char** argv)
 	}
 #endif
 
-	clawshell::daemon::Daemon daemon;
+	clawspan::daemon::Daemon daemon;
 	auto status = daemon.init(config);
 	if (!status.ok()) {
 		LOG_ERROR("daemon init failed: {}", status.message);

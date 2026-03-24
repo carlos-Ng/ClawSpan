@@ -17,7 +17,7 @@
 #include <Hypervisor/hv_types.h>
 #include <Hypervisor/hv_error.h>
 
-namespace clawshell {
+namespace clawspan {
 
 // HvfCall 用于将 HVF 返回码映射到 Result。
 //
@@ -36,7 +36,7 @@ inline Result<void> HvfCall(hv_return_t rc, const char* what)
 }
 
 // HVF_CALL 用于简化 HVF 调用的错误处理。
-#define HVF_CALL(expr) ::clawshell::HvfCall((expr), #expr " failed")
+#define HVF_CALL(expr) ::clawspan::HvfCall((expr), #expr " failed")
 
-} // namespace clawshell
+} // namespace clawspan
 

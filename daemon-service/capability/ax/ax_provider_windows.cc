@@ -19,7 +19,7 @@
 #include <uiautomation.h>
 #include <psapi.h>
 
-namespace clawshell {
+namespace clawspan {
 namespace capability {
 namespace ax {
 
@@ -1272,4 +1272,4 @@ Result<void> AXProviderWindows::activate(std::string_view window_id)
 
 } // namespace ax
 } // namespace capability
-} // namespace clawshell
+} // namespace clawspan

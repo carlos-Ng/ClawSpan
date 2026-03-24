@@ -15,7 +15,7 @@
 
 #include <windows.h>
 
-namespace clawshell {
+namespace clawspan {
 namespace ipc {
 
 // ─── Implement ──────────────────────────────────────────────────────────────
@@ -523,4 +523,4 @@ bool UIService::isConnected() const
 }
 
 } // namespace ipc
-} // namespace clawshell
+} // namespace clawspan

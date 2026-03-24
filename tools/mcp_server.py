@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-mcp_server.py — ClawShell MCP Server（Windows Named Pipe 版）
+mcp_server.py — ClawSpan MCP Server（Windows Named Pipe 版）
 
 将 AI Agent 通过 MCP 协议发出的工具调用桥接到 crew-shell-service daemon，
 所有操作经过 SecurityChain 审查后再执行 AX 操作。
@@ -12,14 +12,14 @@ mcp_server.py — ClawShell MCP Server（Windows Named Pipe 版）
   python tools\\mcp_server.py \\\\.\\pipe\\crew-shell-service
 
 环境变量：
-  CLAWSHELL_SOCK   crew-shell-service Named Pipe 路径（默认 \\\\.\\pipe\\crew-shell-service）
+  CLAWSPAN_SOCK   crew-shell-service Named Pipe 路径（默认 \\\\.\\pipe\\crew-shell-service）
 
 与 Claude Desktop 集成（%APPDATA%\\Claude\\claude_desktop_config.json）：
   {
     "mcpServers": {
-      "clawshell": {
+      "clawspan": {
         "command": "python",
-        "args": ["C:\\\\path\\\\to\\\\ClawShell\\\\tools\\\\mcp_server.py"]
+        "args": ["C:\\\\path\\\\to\\\\ClawSpan\\\\tools\\\\mcp_server.py"]
       }
     }
   }
@@ -58,7 +58,7 @@ except ImportError:
 
 # ── 配置 ──────────────────────────────────────────────────────────────────────
 
-DAEMON_PIPE = os.environ.get("CLAWSHELL_SOCK", r"\\.\pipe\crew-shell-service")
+DAEMON_PIPE = os.environ.get("CLAWSPAN_SOCK", r"\\.\pipe\crew-shell-service")
 CAPABILITY  = "capability_ax"
 
 if len(sys.argv) > 1 and not sys.argv[1].startswith("-"):
@@ -188,7 +188,7 @@ def _fmt(resp: dict) -> str:
 # ── MCP Server ────────────────────────────────────────────────────────────────
 
 mcp = FastMCP(
-    "clawshell",
+    "clawspan",
     description=(
         "Secure Windows GUI automation gateway. "
         "All operations pass through an independent security chain before execution. "

@@ -1,13 +1,13 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using ClawShellUI.Models;
-using ClawShellUI.Panels;
+using ClawSpanUI.Models;
+using ClawSpanUI.Panels;
 
-namespace ClawShellUI.Forms
+namespace ClawSpanUI.Forms
 {
 
-// MainForm 是 ClawShell 主窗口，包含 "状态" 和 "任务" 两个 Tab。
+// MainForm 是 ClawSpan 主窗口，包含 "状态" 和 "任务" 两个 Tab。
 // 关闭时隐藏而非退出，通过系统托盘重新打开。
 public class MainForm : Form
 {
@@ -56,7 +56,7 @@ public class MainForm : Form
 	{
 		SuspendLayout();
 
-		Text = "ClawShell";
+		Text = "ClawSpan";
 		FormBorderStyle = FormBorderStyle.Sizable;
 		MinimumSize = new Size(700, 580);
 		Size = new Size(760, 640);
@@ -197,4 +197,4 @@ public class MainForm : Form
 	}
 }
 
-} // namespace ClawShellUI.Forms
+} // namespace ClawSpanUI.Forms

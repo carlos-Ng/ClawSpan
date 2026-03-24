@@ -1,9 +1,9 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using ClawShellUI.Models;
+using ClawSpanUI.Models;
 
-namespace ClawShellUI.Panels
+namespace ClawSpanUI.Panels
 {
 
 // StatusPanel 展示当前连接状态与活动任务概览，对应主窗口 "状态" Tab。
@@ -272,4 +272,4 @@ public class StatusPanel : UserControl
 	}
 }
 
-} // namespace ClawShellUI.Panels
+} // namespace ClawSpanUI.Panels

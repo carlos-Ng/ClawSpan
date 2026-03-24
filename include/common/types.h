@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace clawshell {
+namespace clawspan {
 
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;
@@ -15,4 +15,4 @@ using i16 = std::int16_t;
 using i32 = std::int32_t;
 using i64 = std::int64_t;
 
-} // namespace clawshell
+} // namespace clawspan

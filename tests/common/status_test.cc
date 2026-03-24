@@ -8,7 +8,7 @@
 #include <string>
 #include <utility>
 
-namespace clawshell {
+namespace clawspan {
 namespace {
 
 // ── Status 基本操作 ────────────────────────────────────────────────────────
@@ -251,4 +251,4 @@ TEST(ResultVoid, PropagateError)
 }
 
 } // namespace
-} // namespace clawshell
+} // namespace clawspan

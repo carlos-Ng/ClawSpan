@@ -1,9 +1,9 @@
 """
-vsock_client.py -- VM 侧 AF_VSOCK 客户端（ClawShell FrameCodec 协议）
+vsock_client.py -- VM 侧 AF_VSOCK 客户端（ClawSpan FrameCodec 协议）
 
 通过 AF_VSOCK 连接宿主机 vsock_server（Channel 3），收发 JSON 消息。
 
-帧格式（ClawShell FrameCodec）：
+帧格式（ClawSpan FrameCodec）：
     length(4B 大端 uint32) + body(length 字节 UTF-8 JSON)
 
 与旧版 AI-agent-sec 协议的区别：
@@ -36,7 +36,7 @@ JSON = Dict[str, Any]
 
 def encode_frame(payload: JSON) -> bytes:
     """
-    encode_frame 将 JSON payload 序列化为 ClawShell FrameCodec 帧。
+    encode_frame 将 JSON payload 序列化为 ClawSpan FrameCodec 帧。
 
     入参:
     - payload: 待编码的 JSON 对象

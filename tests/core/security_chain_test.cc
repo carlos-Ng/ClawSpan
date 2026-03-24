@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-namespace clawshell {
+namespace clawspan {
 namespace core {
 namespace {
 
@@ -317,4 +317,4 @@ TEST(SecurityChainCapRegistered, AllModulesNotified)
 
 } // namespace
 } // namespace core
-} // namespace clawshell
+} // namespace clawspan

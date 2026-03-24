@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-confirm_client.py — ClawShell 用户确认通道测试客户端（Windows Named Pipe 版）
+confirm_client.py — ClawSpan 用户确认通道测试客户端（Windows Named Pipe 版）
 
 用法：
   python tools\\confirm_client.py [pipe_path]
@@ -67,7 +67,7 @@ def connect_pipe(path: str):
             if e.args[0] == winerror.ERROR_FILE_NOT_FOUND:
                 print(f"[ERROR] Named Pipe 不存在：{path}")
                 print("        请先启动 crew-shell-service：")
-                print(r"          .\build\crew-shell-service.exe -f -c config\clawshell.toml")
+                print(r"          .\build\crew-shell-service.exe -f -c config\clawspan.toml")
                 sys.exit(1)
             print(f"[ERROR] 连接失败：{e}")
             sys.exit(1)
@@ -109,7 +109,7 @@ def handle_request(handle, req: dict) -> None:
 
     print(textwrap.dedent(f"""
     ╔══════════════════════════════════════════════════════════════╗
-    ║  ClawShell — 需要用户确认                                 ║
+    ║  ClawSpan — 需要用户确认                                 ║
     ╠══════════════════════════════════════════════════════════════╣
     ║  能力  : {capability:<52}║
     ║  操作  : {operation:<52}║

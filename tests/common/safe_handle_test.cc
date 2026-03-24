@@ -6,7 +6,7 @@
 
 #include <utility>
 
-namespace clawshell {
+namespace clawspan {
 namespace {
 
 // ── 基本构造 / 析构 ─────────────────────────────────────────────────────────
@@ -111,4 +111,4 @@ TEST(SafeHandleRelease, ReleaseFromInvalid)
 }
 
 } // namespace
-} // namespace clawshell
+} // namespace clawspan
