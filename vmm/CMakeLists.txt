@@ -8,6 +8,7 @@
 add_library(clawspan_vmm STATIC
     vm/vm_manager.cc
     ipc/vsock_server.cc
+    ipc/vsock_bridge_server.cc
 )
 
 # vmm/ 内部私有头文件（hvsocket_defs.h, wsl_com_interfaces.h）

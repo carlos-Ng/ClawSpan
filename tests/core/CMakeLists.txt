@@ -1,12 +1,14 @@
 # tests/core/CMakeLists.txt — Core module tests (TaskRegistry, SecurityChain, ModuleConfig)
 
 add_executable(core_tests
+    channel3_grpc_service_test.cc
     task_registry_test.cc
     security_chain_test.cc
     module_config_test.cc
 )
 
 target_link_libraries(core_tests PRIVATE
+    clawspan_channel3
     clawspan_core
     clawspan_headers
     GTest::gtest

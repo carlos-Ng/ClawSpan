@@ -57,7 +57,7 @@ struct DaemonConfig
 	// 超时策略：wait_forever / timeout_deny / timeout_allow。
 	std::string ui_timeout_mode = DEFAULT_UI_TIMEOUT_MODE;
 
-	// ── VsockServer (Channel 3) 配置 ────────────────────────────────────────
+	// legacy Channel 3（vsock + JSON 帧协议）配置
 	static constexpr uint32_t DEFAULT_VSOCK_PORT    = 100;
 	static constexpr bool     DEFAULT_VSOCK_ENABLED = true;
 
@@ -67,7 +67,18 @@ struct DaemonConfig
 	// 是否启用 VsockServer（false 时不监听 VM 连接，用于无 VM 的调试场景）。
 	bool     vsock_enabled = DEFAULT_VSOCK_ENABLED;
 
-	// ── VMM 配置 ────────────────────────────────────────────────────────────
+	// 新 gRPC Channel 3 配置。
+	// Host 本地 gRPC server 监听 host_listen；
+	// VM 通过 vsock bridge 端口连入，再转发到 host_listen。
+	static constexpr const char* DEFAULT_CHANNEL3_GRPC_HOST_LISTEN = "127.0.0.1:50051";
+	static constexpr uint32_t    DEFAULT_CHANNEL3_GRPC_VSOCK_PORT  = 101;
+	static constexpr bool        DEFAULT_CHANNEL3_GRPC_ENABLED     = true;
+
+	bool        channel3_grpc_enabled = DEFAULT_CHANNEL3_GRPC_ENABLED;
+	std::string channel3_grpc_host_listen = DEFAULT_CHANNEL3_GRPC_HOST_LISTEN;
+	uint32_t    channel3_grpc_vsock_port = DEFAULT_CHANNEL3_GRPC_VSOCK_PORT;
+
+	// VMM / WSL2 生命周期管理配置
 	static constexpr const char* DEFAULT_VMM_DISTRO_NAME = "ClawSpan";
 	static constexpr const char* DEFAULT_VMM_ROOTFS_PATH = "";
 	static constexpr const char* DEFAULT_VMM_EXE_PATH    = "";

@@ -1,5 +1,17 @@
 cmake_minimum_required(VERSION 3.20)
 
+
+set(CMAKE_TOOLCHAIN_FILE
+    "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+    CACHE STRING "Vcpkg toolchain file")
+
+if(WIN32)
+    set(VCPKG_TARGET_TRIPLET
+        "x64-windows-static"
+        CACHE STRING "Vcpkg target triplet"
+        FORCE)
+endif()
+
 # ─── 项目声明 ─────────────────────────────────────────────────────────────────
 # Windows 平台无 ObjC++，只需 CXX。
 # 未来合并 macOS 代码时，在此添加 if(APPLE) 分支并补充 OBJCXX 语言。
@@ -10,6 +22,12 @@ project(ClawSpan VERSION 0.1.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+find_package(Protobuf CONFIG REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
+
+get_target_property(CLAWSPAN_GRPC_INCLUDE_DIRS gRPC::grpc++ INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(CLAWSPAN_PROTOBUF_INCLUDE_DIRS protobuf::libprotobuf INTERFACE_INCLUDE_DIRECTORIES)
 
 # ─── Windows 特定全局设置 ─────────────────────────────────────────────────────
 
@@ -84,6 +102,66 @@ target_include_directories(clawspan_headers INTERFACE
 )
 target_link_libraries(clawspan_headers INTERFACE third_party)
 
+set(CHANNEL3_PROTO_DIR "${CMAKE_SOURCE_DIR}/proto")
+set(CHANNEL3_PROTO_FILE "${CHANNEL3_PROTO_DIR}/channel3.proto")
+set(CHANNEL3_PROTO_GEN_DIR "${CMAKE_BINARY_DIR}/generated/channel3")
+file(MAKE_DIRECTORY "${CHANNEL3_PROTO_GEN_DIR}")
+
+set(CHANNEL3_PROTO_SRCS
+    "${CHANNEL3_PROTO_GEN_DIR}/channel3.pb.cc"
+    "${CHANNEL3_PROTO_GEN_DIR}/channel3.grpc.pb.cc"
+)
+set(CHANNEL3_PROTO_HDRS
+    "${CHANNEL3_PROTO_GEN_DIR}/channel3.pb.h"
+    "${CHANNEL3_PROTO_GEN_DIR}/channel3.grpc.pb.h"
+)
+
+add_custom_command(
+    OUTPUT
+        ${CHANNEL3_PROTO_SRCS}
+        ${CHANNEL3_PROTO_HDRS}
+    COMMAND $<TARGET_FILE:protobuf::protoc>
+    ARGS
+        --proto_path=${CHANNEL3_PROTO_DIR}
+        --cpp_out=${CHANNEL3_PROTO_GEN_DIR}
+        --grpc_out=${CHANNEL3_PROTO_GEN_DIR}
+        --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
+        ${CHANNEL3_PROTO_FILE}
+    DEPENDS
+        ${CHANNEL3_PROTO_FILE}
+        protobuf::protoc
+        gRPC::grpc_cpp_plugin
+    VERBATIM
+)
+
+add_library(clawspan_channel3_proto STATIC
+    ${CHANNEL3_PROTO_SRCS}
+    ${CHANNEL3_PROTO_HDRS}
+)
+target_include_directories(clawspan_channel3_proto PUBLIC
+    ${CHANNEL3_PROTO_GEN_DIR}
+    ${CLAWSPAN_GRPC_INCLUDE_DIRS}
+    ${CLAWSPAN_PROTOBUF_INCLUDE_DIRS}
+)
+target_link_libraries(clawspan_channel3_proto PUBLIC
+    protobuf::libprotobuf
+    gRPC::grpc++
+)
+
+add_library(clawspan_channel3 STATIC
+    daemon-service/channel3/channel3_grpc_server.cc
+)
+target_include_directories(clawspan_channel3 PUBLIC
+    ${CMAKE_SOURCE_DIR}/daemon-service
+    ${CHANNEL3_PROTO_GEN_DIR}
+    ${CLAWSPAN_GRPC_INCLUDE_DIRS}
+    ${CLAWSPAN_PROTOBUF_INCLUDE_DIRS}
+)
+target_link_libraries(clawspan_channel3 PUBLIC
+    clawspan_channel3_proto
+    clawspan_headers
+)
+
 # ─── Core library ────────────────────────────────────────────────────────────
 
 add_library(clawspan_core STATIC
@@ -148,9 +226,13 @@ target_include_directories(claw_span_service PRIVATE
 )
 target_link_libraries(claw_span_service PRIVATE
     clawspan_core
+    clawspan_channel3
+    clawspan_channel3_proto
     clawspan_ipc
     clawspan_vmm
     clawspan_headers
+    protobuf::libprotobuf
+    gRPC::grpc++
 )
 target_compile_definitions(claw_span_service PRIVATE
     CLAWSPAN_VERSION="${PROJECT_VERSION}"

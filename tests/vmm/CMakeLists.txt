@@ -2,6 +2,7 @@
 
 add_executable(vmm_tests
     vm_manager_test.cc
+    vsock_bridge_server_test.cc
     vsock_server_test.cc
 )
 
