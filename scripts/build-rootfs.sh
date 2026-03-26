@@ -322,7 +322,15 @@ if [[ -z "$CLAWSPAN_SRC" || ! -d "$CLAWSPAN_SRC" ]]; then
     PREFLIGHT_ERRORS+=("请用 --src 指定源码目录: sudo $0 --src /mnt/c/Users/你的用户名/ClawSpan")
 else
     echo "  ✓ 源码目录: $CLAWSPAN_SRC"
-    for _sf in mcp/server/mcp_server.py mcp/server/vsock_client.py mcp/client/clawspan-gui/SKILL.md; do
+    for _sf in \
+        mcp/server/mcp_server.py \
+        mcp/server/launch_mcp_server.py \
+        mcp/server/vsock_client.py \
+        mcp/server/channel3_grpc_client.py \
+        mcp/server/channel3_tunnel.py \
+        mcp/server/generated/channel3_pb2.py \
+        mcp/server/generated/channel3_pb2_grpc.py \
+        mcp/client/clawspan-gui/SKILL.md; do
         if [[ -f "$CLAWSPAN_SRC/$_sf" ]]; then
             echo "  ✓ $_sf"
         else
@@ -537,6 +545,7 @@ if ! run_stage 3 "Python 3"; then
     chroot "$ROOTFS_DIR" bash -c "
         apt-get update -qq
         apt-get install -y -qq python3 python3-pip python3-venv
+        python3 -m pip install --break-system-packages grpcio protobuf
         python3 --version
     "
 
@@ -623,7 +632,14 @@ if ! run_stage 6 "ClawSpan MCP Server"; then
     # MCP Server
     mkdir -p "$ROOTFS_DIR$MCP_INSTALL_DIR"
     cp "$CLAWSPAN_SRC/mcp/server/vsock_client.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/"
+    cp "$CLAWSPAN_SRC/mcp/server/launch_mcp_server.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/"
+    cp "$CLAWSPAN_SRC/mcp/server/channel3_grpc_client.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/"
+    cp "$CLAWSPAN_SRC/mcp/server/channel3_tunnel.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/"
     cp "$CLAWSPAN_SRC/mcp/server/mcp_server.py"   "$ROOTFS_DIR$MCP_INSTALL_DIR/"
+    mkdir -p "$ROOTFS_DIR$MCP_INSTALL_DIR/generated"
+    cp "$CLAWSPAN_SRC/mcp/server/generated/__init__.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/generated/"
+    cp "$CLAWSPAN_SRC/mcp/server/generated/channel3_pb2.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/generated/"
+    cp "$CLAWSPAN_SRC/mcp/server/generated/channel3_pb2_grpc.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/generated/"
 
     # OpenClaw skill
     mkdir -p "$ROOTFS_DIR/opt/clawspan/skills/clawspan-gui"
@@ -657,7 +673,7 @@ if ! run_stage 6 "ClawSpan MCP Server"; then
           "mcpServers": {
             "clawspan-gui": {
               "command": "python3",
-              "args": ["$MCP_INSTALL_DIR/mcp_server.py"]
+              "args": ["$MCP_INSTALL_DIR/launch_mcp_server.py"]
             }
           }
         }

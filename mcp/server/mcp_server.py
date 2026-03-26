@@ -19,6 +19,7 @@ MCP 协议方法：
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 import traceback
@@ -182,25 +183,60 @@ TOOLS = [
 ]
 
 
-# ── McpServer ────────────────────────────────────────────────────────────
-
 class McpServer:
-    """MCP Server 封装，复用单个 VsockClient 连接。"""
-
-    def __init__(self) -> None:
-        self._client = VsockClient()
-        self._connected = False
+    def __init__(self, channel3_transport: str = "legacy") -> None:
+        self._transport_mode = channel3_transport
+        self._selected_transport = ""
+        self._client: Any | None = None
         self._initialized = False
 
-    def _ensure_connected(self) -> None:
-        if not self._connected or not self._client.is_connected():
-            self._client.connect()
-            self._connected = True
+    def _create_grpc_client(self):
+        from channel3_grpc_client import GrpcChannel3Client
 
-    # ── MCP 协议方法 ────────────────────────────────────────────────────
+        return GrpcChannel3Client()
+
+    def _connect_with_transport(self, transport: str) -> None:
+        if transport == "legacy":
+            client = VsockClient()
+        elif transport == "grpc":
+            client = self._create_grpc_client()
+        else:
+            raise ValueError(f"未知 transport: {transport}")
+
+        try:
+            client.connect()
+        except Exception:
+            try:
+                client.close()
+            except Exception:
+                pass
+            raise
+
+        self._client = client
+        self._selected_transport = transport
+
+    def _ensure_connected(self) -> None:
+        if self._client is not None and self._client.is_connected():
+            return
+
+        if self._client is not None and not self._client.is_connected():
+            self._client.connect()
+            return
+
+        if self._transport_mode == "legacy":
+            self._connect_with_transport("legacy")
+            return
+
+        if self._transport_mode == "grpc":
+            self._connect_with_transport("grpc")
+            return
+
+        try:
+            self._connect_with_transport("grpc")
+        except VsockError:
+            self._connect_with_transport("legacy")
 
     def handle_initialize(self, req: RpcRequest) -> JSON:
-        """MCP initialize 握手，返回 server capabilities。"""
         self._initialized = True
         return {
             "protocolVersion": MCP_PROTOCOL_VERSION,
@@ -211,11 +247,9 @@ class McpServer:
         }
 
     def handle_tools_list(self, req: RpcRequest) -> JSON:
-        """MCP tools/list，返回可用工具清单。"""
         return {"tools": TOOLS}
 
     def handle_tools_call(self, req: RpcRequest) -> JSON:
-        """MCP tools/call，调用指定工具。"""
         params = req.params or {}
         name = params.get("name")
         args = params.get("arguments") or {}
@@ -226,6 +260,7 @@ class McpServer:
             raise ValueError("params.arguments 必须是对象")
 
         self._ensure_connected()
+        assert self._client is not None
 
         if name == "gui__list_windows":
             result = self._client.list_windows()
@@ -233,14 +268,15 @@ class McpServer:
             session_id = str(args.get("session_id", "session-unknown"))
             root_desc = str(args.get("root_description", ""))
             task_id = self._client.begin_task(
-                session_id=session_id, root_description=root_desc
+                session_id=session_id,
+                root_description=root_desc,
             )
             result = {"task_id": task_id}
         elif name == "gui__end_task":
-            task_id_hex = args.get("task_id", "")
+            task_id = args.get("task_id", "")
             status = str(args.get("status", "success"))
-            if task_id_hex:
-                self._client._task_id = task_id_hex
+            if task_id:
+                self._client._task_id = str(task_id)
             self._client.end_task(status=status)
             result = {"status": status, "ended": True}
         elif name == "gui__click":
@@ -259,10 +295,9 @@ class McpServer:
             )
         elif name == "gui__set_value":
             element_path = args.get("element_path")
-            value = args.get("value", "")
             if not isinstance(element_path, str) or not element_path:
                 raise ValueError("gui__set_value 需要非空字符串参数 element_path")
-            result = self._client.set_value(element_path, str(value))
+            result = self._client.set_value(element_path, str(args.get("value", "")))
         elif name == "gui__activate_window":
             window_id = args.get("window_id")
             if not isinstance(window_id, str) or not window_id:
@@ -272,12 +307,13 @@ class McpServer:
             key = args.get("key")
             if not isinstance(key, str) or not key:
                 raise ValueError("gui__key_press 需要非空字符串参数 key")
-            window_id = str(args.get("window_id", ""))
-            result = self._client.key_press(window_id=window_id, key=key)
+            result = self._client.key_press(
+                window_id=str(args.get("window_id", "")),
+                key=key,
+            )
         else:
             raise ValueError(f"未知工具: {name}")
 
-        # MCP tools/call 响应格式：content 数组
         return {
             "content": [
                 {
@@ -288,10 +324,7 @@ class McpServer:
         }
 
 
-# ── 请求调度 ─────────────────────────────────────────────────────────────
-
 def _dispatch(server: McpServer, obj: JSON) -> None:
-    """单次请求调度。"""
     _id = obj.get("id")
     method = obj.get("method")
     params = obj.get("params") or {}
@@ -300,9 +333,6 @@ def _dispatch(server: McpServer, obj: JSON) -> None:
         _write_error(_id, -32600, "无效请求: method 必须是字符串")
         return
 
-    # MCP 通知（无 id，无需响应）
-    if _id is None and method == "notifications/initialized":
-        return
     if _id is None and method.startswith("notifications/"):
         return
 
@@ -320,19 +350,31 @@ def _dispatch(server: McpServer, obj: JSON) -> None:
             return
         _write_result(_id, result)
     except VsockError as exc:
-        _write_error(_id, 1001, f"Vsock 错误: {exc}")
+        _write_error(_id, 1001, f"Channel 3 传输错误: {exc}")
     except Exception as exc:  # noqa: BLE001
-        tb = traceback.format_exc()
         _write_error(
             _id,
             1000,
             f"服务器内部错误: {exc}",
-            data={"traceback": tb},
+            data={"traceback": traceback.format_exc()},
         )
 
 
-def main() -> int:
-    server = McpServer()
+def _parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="ClawSpan GUI MCP Server")
+    parser.add_argument(
+        "--channel3-transport",
+        choices=("legacy", "grpc", "auto"),
+        default="legacy",
+        help="选择 Channel 3 传输模式，默认 legacy",
+    )
+    args, _ = parser.parse_known_args(argv)
+    return args
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parse_args(sys.argv[1:] if argv is None else argv)
+    server = McpServer(channel3_transport=args.channel3_transport)
     for obj in _read_requests():
         _dispatch(server, obj)
     return 0

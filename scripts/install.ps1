@@ -1082,7 +1082,7 @@ function Write-InstallConfiguration {
                             mcpServers = @{
                                 "clawspan-gui" = @{
                                     command = "python3"
-                                    args = @("/opt/clawspan/mcp/mcp_server.py")
+                                    args = @("/opt/clawspan/mcp/launch_mcp_server.py")
                                 }
                             }
                         }

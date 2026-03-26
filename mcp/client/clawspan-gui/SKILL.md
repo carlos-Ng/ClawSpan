@@ -32,7 +32,7 @@ Add to `~/.openclaw/openclaw.json`:
           "mcpServers": {
             "clawspan-gui": {
               "command": "python3",
-              "args": ["/path/to/clawspan/mcp/server/mcp_server.py"]
+              "args": ["/path/to/clawspan/mcp/server/launch_mcp_server.py"]
             }
           }
         }
@@ -41,6 +41,9 @@ Add to `~/.openclaw/openclaw.json`:
   }
 }
 ```
+
+If you need to switch Channel 3 transport during the dual-stack migration, set
+`CLAWSPAN_CHANNEL3_TRANSPORT=legacy|grpc|auto` in the environment before launching OpenClaw.
 
 The host-side ClawSpan daemon must be running and the vsock server listening on port 100.
 

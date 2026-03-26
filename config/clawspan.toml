@@ -30,6 +30,14 @@ timeout_secs = 60
 port    = 100
 enabled = true
 
+# ──  (Channel 3 gRPC版: VM 直连) ──────────────────────────────────────────────────
+
+[channel3_grpc]
+enabled     = true
+host_listen = "127.0.0.1:50051"
+vsock_port  = 101
+
+
 # ── VMM (VM 生命周期管理) ──────────────────────────────────────────────────
 
 [vmm]

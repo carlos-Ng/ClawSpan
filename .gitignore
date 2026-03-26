@@ -1,5 +1,6 @@
 # CMake build output
 build/
+build-*/
 
 # Distribution package
 dist/
@@ -46,3 +47,4 @@ docs/*.md
 .vscode/
 Thumbs.db
 Desktop.ini
+mcp/server/mcp_server.py
