@@ -33,7 +33,7 @@ struct VmmLauncherConfig
 	// WSL2 distro 名称，传给 vmm.exe --distro。
 	std::string distro_name = "ClawSpan";
 
-	// daemon Channel 1 Named Pipe 路径，传给 vmm.exe --daemon-pipe。
+	// daemon VM 控制通道 Named Pipe 路径，传给 vmm.exe --daemon-pipe。
 	std::string daemon_pipe = "\\\\.\\pipe\\crew-shell-service";
 
 	// 日志级别，传给 vmm.exe --log-level。

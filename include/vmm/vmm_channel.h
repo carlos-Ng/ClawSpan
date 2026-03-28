@@ -1,13 +1,13 @@
 #pragma once
 
-// vmm_channel.h — Channel 1 VMM 控制协议定义
+// vmm_channel.h — VM 控制通道协议定义
 //
-// Channel 1 负责 vmm.exe（host 侧进程）与 daemon 中 VmManager 组件的双向通信。
+// VM 控制通道负责 vmm.exe（host 侧进程）与 daemon 中 VmManager 组件的双向通信。
 // 传输层：Windows Named Pipe，每个 vmm 实例对应独立管道：
 //   \\.\pipe\clawspan-vmm-{distro_name}
 //
 // 协议：ClawSpan FrameCodec（4B 大端长度前缀 + UTF-8 JSON body），
-//        消息通过 "type" 字段路由，与 Channel 2 / Channel 3 格式完全一致。
+//        消息通过 "type" 字段路由，与 UI 事件通道 / VM Gateway 通道格式完全一致。
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // 消息流向：
@@ -35,7 +35,7 @@ namespace vmm {
 
 // ── 管道路径规范 ──────────────────────────────────────────────────────────────
 
-// vmmPipeName 根据 distro 名称生成 Channel 1 命名管道路径。
+// vmmPipeName 根据 distro 名称生成 VM 控制通道命名管道路径。
 //
 // 入参:
 // - distro_name: distro 唯一名称（ASCII，如 "agent-enclave-vm"）

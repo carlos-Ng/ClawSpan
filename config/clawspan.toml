@@ -12,7 +12,7 @@ log_level        = "debug"
 # dist 目标已将所有 DLL 集中到此目录
 module_dir = "build\\modules"
 
-# ── UIService (Channel 2) ────────────────────────────────────────────────────
+# ── UIService (UI 事件通道) ──────────────────────────────────────────────────
 
 [ui]
 # ClawSpan WinForms UI 连接的 Named Pipe 路径
@@ -24,18 +24,11 @@ timeout_mode = "timeout_deny"
 # 超时时长（秒），timeout_mode = wait_forever 时忽略
 timeout_secs = 60
 
-# ── VsockServer (Channel 3: VM 直连) ───────────────────────────────────────
+# ── VM Channel Gateway（重构后唯一链路） ────────────────────────────────────
 
-[vsock]
-port    = 100
-enabled = true
-
-# ──  (Channel 3 gRPC版: VM 直连) ──────────────────────────────────────────────────
-
-[channel3_grpc]
-enabled     = true
-host_listen = "127.0.0.1:50051"
-vsock_port  = 101
+[vm_channel]
+mode = "gateway"
+gateway_listen_target = "vsock://vm-channel-gateway"
 
 
 # ── VMM (VM 生命周期管理) ──────────────────────────────────────────────────

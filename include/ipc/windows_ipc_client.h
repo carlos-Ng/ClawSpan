@@ -8,7 +8,7 @@ namespace clawspan {
 namespace ipc {
 
 // WindowsIpcClient 是 IpcClientInterface 的 Windows Named Pipe 实现。
-// 使用 Length-prefix 帧格式（[uint32 BE len][JSON body]）传输 Channel 1 消息。
+// 使用 Length-prefix 帧格式（[uint32 BE len][JSON body]）传输 VM 控制通道消息。
 //
 // 线程安全：call_mutex_ 序列化并发调用，保证单连接上同一时刻只有一条消息在发送。
 class WindowsIpcClient : public IpcClientInterface

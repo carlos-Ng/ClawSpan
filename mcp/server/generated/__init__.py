@@ -1,1 +1,1 @@
-# Generated Channel 3 Python stubs live in this package.
+# Generated VM Channel Python stubs live in this package.

@@ -326,10 +326,10 @@ else
         mcp/server/mcp_server.py \
         mcp/server/launch_mcp_server.py \
         mcp/server/vsock_client.py \
-        mcp/server/channel3_grpc_client.py \
-        mcp/server/channel3_tunnel.py \
-        mcp/server/generated/channel3_pb2.py \
-        mcp/server/generated/channel3_pb2_grpc.py \
+        mcp/server/vm_channel_grpc_client.py \
+        mcp/server/vm_channel_tunnel.py \
+        mcp/server/generated/vm_channel_pb2.py \
+        mcp/server/generated/vm_channel_pb2_grpc.py \
         mcp/client/clawspan-gui/SKILL.md; do
         if [[ -f "$CLAWSPAN_SRC/$_sf" ]]; then
             echo "  ✓ $_sf"
@@ -633,13 +633,13 @@ if ! run_stage 6 "ClawSpan MCP Server"; then
     mkdir -p "$ROOTFS_DIR$MCP_INSTALL_DIR"
     cp "$CLAWSPAN_SRC/mcp/server/vsock_client.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/"
     cp "$CLAWSPAN_SRC/mcp/server/launch_mcp_server.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/"
-    cp "$CLAWSPAN_SRC/mcp/server/channel3_grpc_client.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/"
-    cp "$CLAWSPAN_SRC/mcp/server/channel3_tunnel.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/"
+    cp "$CLAWSPAN_SRC/mcp/server/vm_channel_grpc_client.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/"
+    cp "$CLAWSPAN_SRC/mcp/server/vm_channel_tunnel.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/"
     cp "$CLAWSPAN_SRC/mcp/server/mcp_server.py"   "$ROOTFS_DIR$MCP_INSTALL_DIR/"
     mkdir -p "$ROOTFS_DIR$MCP_INSTALL_DIR/generated"
     cp "$CLAWSPAN_SRC/mcp/server/generated/__init__.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/generated/"
-    cp "$CLAWSPAN_SRC/mcp/server/generated/channel3_pb2.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/generated/"
-    cp "$CLAWSPAN_SRC/mcp/server/generated/channel3_pb2_grpc.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/generated/"
+    cp "$CLAWSPAN_SRC/mcp/server/generated/vm_channel_pb2.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/generated/"
+    cp "$CLAWSPAN_SRC/mcp/server/generated/vm_channel_pb2_grpc.py" "$ROOTFS_DIR$MCP_INSTALL_DIR/generated/"
 
     # OpenClaw skill
     mkdir -p "$ROOTFS_DIR/opt/clawspan/skills/clawspan-gui"

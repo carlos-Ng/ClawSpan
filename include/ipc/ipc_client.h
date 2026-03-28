@@ -9,7 +9,7 @@
 namespace clawspan {
 namespace ipc {
 
-// IpcClientInterface：Channel 1 IPC 客户端抽象接口（供 OpenClaw 插件调用）。
+// IpcClientInterface：VM 控制通道 IPC 客户端抽象接口（供 OpenClaw 插件调用）。
 //
 // 协议：type-based 消息帧，详见 ipc_server.h 中的消息格式说明。
 // 传输：Windows Named Pipe（开发阶段），未来迁移至 vsock（由另一开发者完成）。

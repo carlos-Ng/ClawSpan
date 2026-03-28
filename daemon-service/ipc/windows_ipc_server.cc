@@ -26,7 +26,7 @@ namespace ipc {
 
 // ─── 协议辅助 ────────────────────────────────────────────────────────────────
 //
-// Channel 1 type-based 消息格式（非 JSON-RPC 2.0）：
+// VM 控制通道 type-based 消息格式（非 JSON-RPC 2.0）：
 //
 //   beginTask (VM→Daemon):
 //     {"type":"beginTask","description":"...","root_description":"...",

@@ -5,7 +5,7 @@ using ClawSpanUI.Models;
 namespace ClawSpanUI.Channel
 {
 
-// MessageDispatcher 解析 Channel 2 收到的 JSON 帧，按 type 字段分发到具体事件。
+// MessageDispatcher 解析 UI 事件通道收到的 JSON 帧，按 type 字段分发到具体事件。
 // 运行在 DaemonChannel 的后台线程，事件订阅者需自行 Invoke 回 UI 线程。
 public class MessageDispatcher
 {

@@ -43,12 +43,12 @@ struct DaemonConfig
 	// 模块 dll 所在目录，传入 CoreConfig 供 ModuleManager 使用。
 	std::string module_dir = DEFAULT_MODULE_DIR;
 
-	// ── UIService (Channel 2) 配置 ──────────────────────────────────────────
+	// ── UIService (UI 事件通道) 配置 ─────────────────────────────────────────
 	static constexpr const char* DEFAULT_UI_PIPE_PATH    = "\\\\.\\pipe\\crew-shell-service-ui";
 	static constexpr int         DEFAULT_UI_TIMEOUT_SECS = 60;
 	static constexpr const char* DEFAULT_UI_TIMEOUT_MODE = "timeout_deny";
 
-	// Channel 2 Named Pipe 路径。
+	// UI 事件通道 Named Pipe 路径。
 	std::string ui_pipe_path    = DEFAULT_UI_PIPE_PATH;
 
 	// 用户无响应时的超时时长（秒）；WAIT_FOREVER 时忽略。
@@ -57,26 +57,13 @@ struct DaemonConfig
 	// 超时策略：wait_forever / timeout_deny / timeout_allow。
 	std::string ui_timeout_mode = DEFAULT_UI_TIMEOUT_MODE;
 
-	// legacy Channel 3（vsock + JSON 帧协议）配置
-	static constexpr uint32_t DEFAULT_VSOCK_PORT    = 100;
-	static constexpr bool     DEFAULT_VSOCK_ENABLED = true;
+	// VM Channel gateway 配置（重构后唯一链路）。
+	static constexpr const char* DEFAULT_VM_CHANNEL_MODE = "gateway";
+	static constexpr const char* DEFAULT_VM_CHANNEL_GATEWAY_LISTEN_TARGET =
+		"vsock://vm-channel-gateway";
 
-	// AF_HYPERV vsock 监听端口（VM 侧 AF_VSOCK 连接端口）。
-	uint32_t vsock_port    = DEFAULT_VSOCK_PORT;
-
-	// 是否启用 VsockServer（false 时不监听 VM 连接，用于无 VM 的调试场景）。
-	bool     vsock_enabled = DEFAULT_VSOCK_ENABLED;
-
-	// 新 gRPC Channel 3 配置。
-	// Host 本地 gRPC server 监听 host_listen；
-	// VM 通过 vsock bridge 端口连入，再转发到 host_listen。
-	static constexpr const char* DEFAULT_CHANNEL3_GRPC_HOST_LISTEN = "127.0.0.1:50051";
-	static constexpr uint32_t    DEFAULT_CHANNEL3_GRPC_VSOCK_PORT  = 101;
-	static constexpr bool        DEFAULT_CHANNEL3_GRPC_ENABLED     = true;
-
-	bool        channel3_grpc_enabled = DEFAULT_CHANNEL3_GRPC_ENABLED;
-	std::string channel3_grpc_host_listen = DEFAULT_CHANNEL3_GRPC_HOST_LISTEN;
-	uint32_t    channel3_grpc_vsock_port = DEFAULT_CHANNEL3_GRPC_VSOCK_PORT;
+	std::string vm_channel_mode = DEFAULT_VM_CHANNEL_MODE;
+	std::string vm_channel_gateway_listen_target = DEFAULT_VM_CHANNEL_GATEWAY_LISTEN_TARGET;
 
 	// VMM / WSL2 生命周期管理配置
 	static constexpr const char* DEFAULT_VMM_DISTRO_NAME = "ClawSpan";

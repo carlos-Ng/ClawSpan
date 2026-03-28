@@ -1,7 +1,7 @@
 // main.cc — claw_span_vmm.exe 入口点
 //
 // 每个 WSL2 distro 对应一个 claw_span_vmm.exe 实例，负责 VM 生命周期管理：
-//   - 通过 Channel 1 Named Pipe 连接 daemon，上报 distro 状态
+//   - 通过 VM 控制通道 Named Pipe 连接 daemon，上报 distro 状态
 //   - 接收 daemon 的管理命令（启动/停止/快照等）
 //   - Watchdog 监控 distro 健康状态
 //
@@ -35,7 +35,7 @@ static bool parseArgs(int argc, char** argv, clawspan::vmm::VmmConfig& config)
 		 "WSL2 distro 名称（必选）",
 		 cxxopts::value<std::string>())
 		("daemon-pipe",
-		 "daemon Channel 1 Named Pipe 路径",
+		 "daemon VM 控制通道 Named Pipe 路径",
 		 cxxopts::value<std::string>()->default_value("\\\\.\\pipe\\crew-shell-service"))
 		("log-level",
 		 "日志级别：trace / debug / info / warn / error / critical / off",

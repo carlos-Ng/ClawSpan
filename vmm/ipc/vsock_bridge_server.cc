@@ -111,7 +111,7 @@ bool WindowsVsockBridgeServer::createListenSocket(uint32_t vsock_port)
 {
 	listen_sock_ = ::socket(AF_HYPERV, SOCK_STREAM, HV_PROTOCOL_RAW);
 	if (listen_sock_ == INVALID_SOCKET) {
-		LOG_ERROR("channel3 grpc bridge: socket(AF_HYPERV) failed, WSAError={}",
+		LOG_ERROR("vm_channel grpc bridge: socket(AF_HYPERV) failed, WSAError={}",
 		          ::WSAGetLastError());
 		return false;
 	}
@@ -125,14 +125,14 @@ bool WindowsVsockBridgeServer::createListenSocket(uint32_t vsock_port)
 	if (::bind(listen_sock_,
 	           reinterpret_cast<SOCKADDR*>(&addr),
 	           sizeof(addr)) == SOCKET_ERROR) {
-		LOG_ERROR("channel3 grpc bridge: bind failed, WSAError={}", ::WSAGetLastError());
+		LOG_ERROR("vm_channel grpc bridge: bind failed, WSAError={}", ::WSAGetLastError());
 		::closesocket(listen_sock_);
 		listen_sock_ = INVALID_SOCKET;
 		return false;
 	}
 
 	if (::listen(listen_sock_, SOMAXCONN) == SOCKET_ERROR) {
-		LOG_ERROR("channel3 grpc bridge: listen failed, WSAError={}", ::WSAGetLastError());
+		LOG_ERROR("vm_channel grpc bridge: listen failed, WSAError={}", ::WSAGetLastError());
 		::closesocket(listen_sock_);
 		listen_sock_ = INVALID_SOCKET;
 		return false;
@@ -146,10 +146,10 @@ Status WindowsVsockBridgeServer::start(uint32_t         vsock_port,
                                        uint16_t         target_port)
 {
 	if (running_.load()) {
-		return Status(Status::INTERNAL_ERROR, "channel3 grpc bridge is already running");
+		return Status(Status::INTERNAL_ERROR, "vm_channel grpc bridge is already running");
 	}
 	if (target_port == 0) {
-		return Status(Status::INVALID_ARGUMENT, "channel3 grpc bridge target port is invalid");
+		return Status(Status::INVALID_ARGUMENT, "vm_channel grpc bridge target port is invalid");
 	}
 
 	target_host_ = std::string(target_host);
@@ -160,13 +160,13 @@ Status WindowsVsockBridgeServer::start(uint32_t         vsock_port,
 	}
 	if (!createListenSocket(vsock_port)) {
 		::WSACleanup();
-		return Status(Status::IO_ERROR, "failed to create channel3 grpc bridge listen socket");
+		return Status(Status::IO_ERROR, "failed to create vm_channel grpc bridge listen socket");
 	}
 
 	running_.store(true);
 	accept_thread_ = std::thread(&WindowsVsockBridgeServer::acceptLoop, this);
 
-	LOG_INFO("channel3 grpc bridge: listening on vsock port {} -> {}:{}",
+	LOG_INFO("vm_channel grpc bridge: listening on vsock port {} -> {}:{}",
 	         vsock_port, target_host_, target_port_);
 	return Status::Ok();
 }
@@ -199,7 +199,7 @@ void WindowsVsockBridgeServer::stop()
 	}
 
 	::WSACleanup();
-	LOG_INFO("channel3 grpc bridge: stopped");
+	LOG_INFO("vm_channel grpc bridge: stopped");
 }
 
 SOCKET WindowsVsockBridgeServer::connectTarget()
@@ -253,7 +253,7 @@ void WindowsVsockBridgeServer::bridgeConnection(SOCKET client_sock)
 {
 	SOCKET target_sock = connectTarget();
 	if (target_sock == INVALID_SOCKET) {
-		LOG_WARN("channel3 grpc bridge: failed to connect target {}:{}",
+		LOG_WARN("vm_channel grpc bridge: failed to connect target {}:{}",
 		         target_host_, target_port_);
 		::closesocket(client_sock);
 		return;

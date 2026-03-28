@@ -1,17 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
 
-
-set(CMAKE_TOOLCHAIN_FILE
-    "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-    CACHE STRING "Vcpkg toolchain file")
-
-if(WIN32)
-    set(VCPKG_TARGET_TRIPLET
-        "x64-windows-static"
-        CACHE STRING "Vcpkg target triplet"
-        FORCE)
-endif()
-
 # ─── 项目声明 ─────────────────────────────────────────────────────────────────
 # Windows 平台无 ObjC++，只需 CXX。
 # 未来合并 macOS 代码时，在此添加 if(APPLE) 分支并补充 OBJCXX 语言。
@@ -22,12 +10,6 @@ project(ClawSpan VERSION 0.1.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-find_package(Protobuf CONFIG REQUIRED)
-find_package(gRPC CONFIG REQUIRED)
-
-get_target_property(CLAWSPAN_GRPC_INCLUDE_DIRS gRPC::grpc++ INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(CLAWSPAN_PROTOBUF_INCLUDE_DIRS protobuf::libprotobuf INTERFACE_INCLUDE_DIRECTORIES)
 
 # ─── Windows 特定全局设置 ─────────────────────────────────────────────────────
 
@@ -102,63 +84,24 @@ target_include_directories(clawspan_headers INTERFACE
 )
 target_link_libraries(clawspan_headers INTERFACE third_party)
 
-set(CHANNEL3_PROTO_DIR "${CMAKE_SOURCE_DIR}/proto")
-set(CHANNEL3_PROTO_FILE "${CHANNEL3_PROTO_DIR}/channel3.proto")
-set(CHANNEL3_PROTO_GEN_DIR "${CMAKE_BINARY_DIR}/generated/channel3")
-file(MAKE_DIRECTORY "${CHANNEL3_PROTO_GEN_DIR}")
-
-set(CHANNEL3_PROTO_SRCS
-    "${CHANNEL3_PROTO_GEN_DIR}/channel3.pb.cc"
-    "${CHANNEL3_PROTO_GEN_DIR}/channel3.grpc.pb.cc"
+add_library(clawspan_audit STATIC
+    daemon-service/audit/audit_service.cc
 )
-set(CHANNEL3_PROTO_HDRS
-    "${CHANNEL3_PROTO_GEN_DIR}/channel3.pb.h"
-    "${CHANNEL3_PROTO_GEN_DIR}/channel3.grpc.pb.h"
-)
-
-add_custom_command(
-    OUTPUT
-        ${CHANNEL3_PROTO_SRCS}
-        ${CHANNEL3_PROTO_HDRS}
-    COMMAND $<TARGET_FILE:protobuf::protoc>
-    ARGS
-        --proto_path=${CHANNEL3_PROTO_DIR}
-        --cpp_out=${CHANNEL3_PROTO_GEN_DIR}
-        --grpc_out=${CHANNEL3_PROTO_GEN_DIR}
-        --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
-        ${CHANNEL3_PROTO_FILE}
-    DEPENDS
-        ${CHANNEL3_PROTO_FILE}
-        protobuf::protoc
-        gRPC::grpc_cpp_plugin
-    VERBATIM
-)
-
-add_library(clawspan_channel3_proto STATIC
-    ${CHANNEL3_PROTO_SRCS}
-    ${CHANNEL3_PROTO_HDRS}
-)
-target_include_directories(clawspan_channel3_proto PUBLIC
-    ${CHANNEL3_PROTO_GEN_DIR}
-    ${CLAWSPAN_GRPC_INCLUDE_DIRS}
-    ${CLAWSPAN_PROTOBUF_INCLUDE_DIRS}
-)
-target_link_libraries(clawspan_channel3_proto PUBLIC
-    protobuf::libprotobuf
-    gRPC::grpc++
-)
-
-add_library(clawspan_channel3 STATIC
-    daemon-service/channel3/channel3_grpc_server.cc
-)
-target_include_directories(clawspan_channel3 PUBLIC
+target_include_directories(clawspan_audit PUBLIC
     ${CMAKE_SOURCE_DIR}/daemon-service
-    ${CHANNEL3_PROTO_GEN_DIR}
-    ${CLAWSPAN_GRPC_INCLUDE_DIRS}
-    ${CLAWSPAN_PROTOBUF_INCLUDE_DIRS}
 )
-target_link_libraries(clawspan_channel3 PUBLIC
-    clawspan_channel3_proto
+target_link_libraries(clawspan_audit PUBLIC
+    clawspan_headers
+)
+
+add_library(clawspan_vm_channel STATIC
+    daemon-service/vm_channel/gateway/gateway_host_server.cc
+)
+target_include_directories(clawspan_vm_channel PUBLIC
+    ${CMAKE_SOURCE_DIR}/daemon-service
+)
+target_link_libraries(clawspan_vm_channel PUBLIC
+    clawspan_audit
     clawspan_headers
 )
 
@@ -226,13 +169,10 @@ target_include_directories(claw_span_service PRIVATE
 )
 target_link_libraries(claw_span_service PRIVATE
     clawspan_core
-    clawspan_channel3
-    clawspan_channel3_proto
+    clawspan_vm_channel
     clawspan_ipc
     clawspan_vmm
     clawspan_headers
-    protobuf::libprotobuf
-    gRPC::grpc++
 )
 target_compile_definitions(claw_span_service PRIVATE
     CLAWSPAN_VERSION="${PROJECT_VERSION}"
@@ -358,14 +298,55 @@ endif()
 option(BUILD_TESTS "Build test programs" OFF)
 if(BUILD_TESTS)
     enable_testing()
+    set(CLAWSPAN_LOCAL_GTEST_DIR
+        "${CMAKE_SOURCE_DIR}/third_party/googletest")
+    set(CLAWSPAN_LOCAL_GTEST_FALLBACK_DIR
+        "${CMAKE_SOURCE_DIR}/third_party/grpc/third_party/googletest")
+    set(CLAWSPAN_GTEST_READY OFF)
 
-    # ── Google Test（vcpkg 提供）────────────────────────────────────────────
-    find_package(GTest CONFIG REQUIRED)
+    if(EXISTS "${CLAWSPAN_LOCAL_GTEST_DIR}/CMakeLists.txt")
+        set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+        add_subdirectory("${CLAWSPAN_LOCAL_GTEST_DIR}"
+                         "${CMAKE_BINARY_DIR}/third_party/googletest"
+                         EXCLUDE_FROM_ALL)
+        if(TARGET gtest AND NOT TARGET GTest::gtest)
+            add_library(GTest::gtest ALIAS gtest)
+        endif()
+        if(TARGET gtest_main AND NOT TARGET GTest::gtest_main)
+            add_library(GTest::gtest_main ALIAS gtest_main)
+        endif()
+        set(CLAWSPAN_GTEST_READY ON)
+    elseif(EXISTS "${CLAWSPAN_LOCAL_GTEST_FALLBACK_DIR}/CMakeLists.txt")
+        set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+        add_subdirectory("${CLAWSPAN_LOCAL_GTEST_FALLBACK_DIR}"
+                         "${CMAKE_BINARY_DIR}/third_party/googletest"
+                         EXCLUDE_FROM_ALL)
+        if(TARGET gtest AND NOT TARGET GTest::gtest)
+            add_library(GTest::gtest ALIAS gtest)
+        endif()
+        if(TARGET gtest_main AND NOT TARGET GTest::gtest_main)
+            add_library(GTest::gtest_main ALIAS gtest_main)
+        endif()
+        set(CLAWSPAN_GTEST_READY ON)
+    else()
+        find_package(GTest CONFIG QUIET)
+        if(TARGET GTest::gtest AND TARGET GTest::gtest_main)
+            set(CLAWSPAN_GTEST_READY ON)
+        endif()
+    endif()
 
-    # ── Test targets ─────────────────────────────────────────────────────────
-    add_subdirectory(tests/vmm)
-    add_subdirectory(tests/core)
-    add_subdirectory(tests/common)
-    add_subdirectory(tests/ipc)
-    add_subdirectory(tests/security/filter)
+    if(CLAWSPAN_GTEST_READY)
+        # ── Test targets ─────────────────────────────────────────────────────
+        add_subdirectory(tests/vmm)
+        add_subdirectory(tests/core)
+        add_subdirectory(tests/common)
+        add_subdirectory(tests/ipc)
+        add_subdirectory(tests/security/filter)
+    else()
+        message(WARNING
+            "GoogleTest not found (and local grpc/third_party/googletest is unavailable); "
+            "test targets are skipped. Provide GTestConfig.cmake or vendor googletest.")
+    endif()
 endif()
