@@ -20,6 +20,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+tools/.venv/
 
 # VM image / rootfs artifacts
 rootfs/
