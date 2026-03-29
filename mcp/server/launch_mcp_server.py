@@ -8,9 +8,12 @@ import mcp_server
 
 
 def main() -> int:
-	transport = os.environ.get("CLAWSPAN_CHANNEL3_TRANSPORT", "legacy")
+	transport = os.environ.get(
+		"CLAWSPAN_VM_CHANNEL_TRANSPORT",
+		"gateway",
+	)
 	argv = [
-		"--channel3-transport",
+		"--vm-channel-transport",
 		transport,
 		*sys.argv[1:],
 	]

@@ -42,8 +42,8 @@ Add to `~/.openclaw/openclaw.json`:
 }
 ```
 
-If you need to switch Channel 3 transport during the dual-stack migration, set
-`CLAWSPAN_CHANNEL3_TRANSPORT=legacy|grpc|auto` in the environment before launching OpenClaw.
+If you need to switch VM Channel transport during the dual-stack migration, set
+`CLAWSPAN_VM_CHANNEL_TRANSPORT=legacy|grpc|auto` in the environment before launching OpenClaw.
 
 The host-side ClawSpan daemon must be running and the vsock server listening on port 100.
 

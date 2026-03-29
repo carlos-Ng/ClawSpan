@@ -11,9 +11,9 @@ namespace clawspan {
 namespace ipc {
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Channel 1 处理器类型定义
+// VM 控制通道处理器类型定义
 //
-// Channel 1 协议使用 type-based 消息帧（非 JSON-RPC 2.0）：
+// VM 控制通道协议使用 type-based 消息帧（非 JSON-RPC 2.0）：
 //   beginTask        (VM → Daemon) — 任务开始，Daemon 分配 task_id
 //   endTask          (VM → Daemon) — 任务结束，无需响应（通知语义）
 //   capability       (VM → Daemon) — 能力调用，携带 task_id
@@ -64,7 +64,7 @@ using TaskEndHandler = std::function<void(
 	bool               success)>;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// IpcServerInterface：Channel 1 IPC 服务端抽象接口
+// IpcServerInterface：VM 控制通道 IPC 服务端抽象接口
 // ─────────────────────────────────────────────────────────────────────────────
 class IpcServerInterface
 {
@@ -112,7 +112,7 @@ public:
 	// stop 优雅停止服务端，等待所有工作线程安全退出。
 	virtual void stop() = 0;
 
-	// activeConnectionCount 返回当前已建立连接的 Channel 1 客户端（Agent）数量。
+	// activeConnectionCount 返回当前已建立连接的 VM 控制通道客户端（Agent）数量。
 	// 线程安全，可从任意线程调用。
 	virtual int activeConnectionCount() const = 0;
 

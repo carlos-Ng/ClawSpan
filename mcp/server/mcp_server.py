@@ -184,19 +184,19 @@ TOOLS = [
 
 
 class McpServer:
-    def __init__(self, channel3_transport: str = "legacy") -> None:
-        self._transport_mode = channel3_transport
+    def __init__(self, vm_channel_transport: str = "gateway") -> None:
+        self._transport_mode = vm_channel_transport
         self._selected_transport = ""
         self._client: Any | None = None
         self._initialized = False
 
     def _create_grpc_client(self):
-        from channel3_grpc_client import GrpcChannel3Client
+        from vm_channel_grpc_client import VmGrpcClient
 
-        return GrpcChannel3Client()
+        return VmGrpcClient()
 
     def _connect_with_transport(self, transport: str) -> None:
-        if transport == "legacy":
+        if transport in ("legacy", "gateway"):
             client = VsockClient()
         elif transport == "grpc":
             client = self._create_grpc_client()
@@ -223,8 +223,8 @@ class McpServer:
             self._client.connect()
             return
 
-        if self._transport_mode == "legacy":
-            self._connect_with_transport("legacy")
+        if self._transport_mode in ("legacy", "gateway"):
+            self._connect_with_transport(self._transport_mode)
             return
 
         if self._transport_mode == "grpc":
@@ -232,9 +232,16 @@ class McpServer:
             return
 
         try:
+            self._connect_with_transport("gateway")
+            return
+        except Exception:
+            pass
+        try:
             self._connect_with_transport("grpc")
-        except VsockError:
-            self._connect_with_transport("legacy")
+            return
+        except Exception:
+            pass
+        self._connect_with_transport("legacy")
 
     def handle_initialize(self, req: RpcRequest) -> JSON:
         self._initialized = True
@@ -350,7 +357,7 @@ def _dispatch(server: McpServer, obj: JSON) -> None:
             return
         _write_result(_id, result)
     except VsockError as exc:
-        _write_error(_id, 1001, f"Channel 3 传输错误: {exc}")
+        _write_error(_id, 1001, f"VM Channel 传输错误: {exc}")
     except Exception as exc:  # noqa: BLE001
         _write_error(
             _id,
@@ -363,10 +370,10 @@ def _dispatch(server: McpServer, obj: JSON) -> None:
 def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="ClawSpan GUI MCP Server")
     parser.add_argument(
-        "--channel3-transport",
-        choices=("legacy", "grpc", "auto"),
-        default="legacy",
-        help="选择 Channel 3 传输模式，默认 legacy",
+        "--vm-channel-transport",
+        choices=("gateway", "legacy", "grpc", "auto"),
+        default="gateway",
+        help="选择 VM Channel 传输模式，默认 gateway",
     )
     args, _ = parser.parse_known_args(argv)
     return args
@@ -374,7 +381,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(sys.argv[1:] if argv is None else argv)
-    server = McpServer(channel3_transport=args.channel3_transport)
+    server = McpServer(vm_channel_transport=args.vm_channel_transport)
     for obj in _read_requests():
         _dispatch(server, obj)
     return 0

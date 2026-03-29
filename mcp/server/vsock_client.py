@@ -1,7 +1,7 @@
 """
 vsock_client.py -- VM 侧 AF_VSOCK 客户端（ClawSpan FrameCodec 协议）
 
-通过 AF_VSOCK 连接宿主机 vsock_server（Channel 3），收发 JSON 消息。
+通过 AF_VSOCK 连接宿主机 vsock_server（VM Gateway 通道），收发 JSON 消息。
 
 帧格式（ClawSpan FrameCodec）：
     length(4B 大端 uint32) + body(length 字节 UTF-8 JSON)
@@ -255,7 +255,7 @@ class VsockClient:
         """
         call_capability 统一的 capability 调用入口。
 
-        对应 Host 侧 Channel 1 的 "capability" 消息类型，
+        对应 Host 侧 VM 控制通道的 "capability" 消息类型，
         通过 CapabilityService 路由到具体插件。
 
         入参:

@@ -1,6 +1,6 @@
 #pragma once
 
-// vsock_server.h — Host 侧 Hyper-V socket（AF_HYPERV）服务端（Channel 3 传输层）
+// vsock_server.h — Host 侧 Hyper-V socket（AF_HYPERV）服务端（VM Gateway 传输层）
 //
 // 监听来自 WSL2 VM 内 mcp_server.py 的 AF_VSOCK 连接。
 //
@@ -85,7 +85,7 @@ using ConnectionHandler = std::function<void(bool connected)>;
 
 // ── VsockServerInterface ──────────────────────────────────────────────────────
 
-// VsockServerInterface 定义 Channel 3 vsock 服务端的抽象接口。
+// VsockServerInterface 定义 VM Gateway vsock 服务端的抽象接口。
 // 通过 createVsockServer() 工厂函数获取实现实例。
 class VsockServerInterface
 {

@@ -3,7 +3,7 @@
 # WSL2 VM 生命周期管理 + Hyper-V vsock 通信层。
 # 源文件：
 #   vm/vm_manager.cc    — WslVMManager（COM / wslapi / wsl.exe 多路径 distro 管理）
-#   ipc/vsock_server.cc — WindowsVsockServer（AF_HYPERV Channel 3 传输层）
+#   ipc/vsock_server.cc — WindowsVsockServer（AF_HYPERV VM Gateway 传输层）
 
 add_library(clawspan_vmm STATIC
     vm/vm_manager.cc
@@ -32,7 +32,7 @@ endif()
 #
 # 每个 WSL2 distro 对应一个 vmm.exe 实例：
 #   - Watchdog 循环：定期检查 distro 状态，意外停止时自动重启
-#   - Channel 1 IPC Client：连接 daemon Named Pipe，上报心跳/事件
+#   - VM 控制通道 IPC Client：连接 daemon Named Pipe，上报心跳/事件
 #   - 接收 daemon 管理命令（启动/停止/快照等）
 
 add_executable(clawspan_vmm_exe

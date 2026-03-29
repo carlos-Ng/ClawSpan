@@ -10,7 +10,7 @@ namespace ClawSpanUI
 {
 
 // App 继承 ApplicationContext，作为托盘应用的主控制器。
-// 负责：托盘图标生命周期、Channel 2 启动、消息分发到 UI、确认弹窗显示。
+// 负责：托盘图标生命周期、UI 事件通道启动、消息分发到 UI、确认弹窗显示。
 public class App : ApplicationContext
 {
 	private readonly NotifyIcon _trayIcon;
@@ -28,7 +28,7 @@ public class App : ApplicationContext
 	// 构造
 	// ─────────────────────────────────────────────────────────
 
-	// App 初始化所有组件并启动后台 Channel。
+	// App 初始化所有组件并启动后台通信通道。
 	public App()
 	{
 		_state = new AppState();

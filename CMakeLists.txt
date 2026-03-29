@@ -1,17 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
 
-
-set(CMAKE_TOOLCHAIN_FILE
-    "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-    CACHE STRING "Vcpkg toolchain file")
-
-if(WIN32)
-    set(VCPKG_TARGET_TRIPLET
-        "x64-windows-static"
-        CACHE STRING "Vcpkg target triplet"
-        FORCE)
-endif()
-
 # ─── 项目声明 ─────────────────────────────────────────────────────────────────
 # Windows 平台无 ObjC++，只需 CXX。
 # 未来合并 macOS 代码时，在此添加 if(APPLE) 分支并补充 OBJCXX 语言。
@@ -23,11 +11,77 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(Protobuf CONFIG REQUIRED)
-find_package(gRPC CONFIG REQUIRED)
+# ─── Third-party: gRPC / Protobuf ────────────────────────────────────────────
 
-get_target_property(CLAWSPAN_GRPC_INCLUDE_DIRS gRPC::grpc++ INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(CLAWSPAN_PROTOBUF_INCLUDE_DIRS protobuf::libprotobuf INTERFACE_INCLUDE_DIRECTORIES)
+set(gRPC_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(gRPC_INSTALL OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_CSHARP_EXT OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_GRPC_CSHARP_PLUGIN OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_GRPC_NODE_PLUGIN OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_GRPC_PHP_PLUGIN OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_GRPC_PYTHON_PLUGIN OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_GRPC_RUBY_PLUGIN OFF CACHE BOOL "" FORCE)
+set(gRPC_MSVC_STATIC_RUNTIME OFF CACHE BOOL "" FORCE)
+set(ABSL_MSVC_STATIC_RUNTIME OFF CACHE BOOL "" FORCE)
+set(protobuf_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(protobuf_INSTALL OFF CACHE BOOL "" FORCE)
+set(protobuf_MSVC_STATIC_RUNTIME OFF CACHE BOOL "" FORCE)
+if(MSVC)
+    # Use a shared CRT across EXE and plugin DLLs to avoid cross-module heap issues.
+    # Static CRT (/MT,/MTd) gives each module its own heap and can trigger debug_heap
+    # assertions when memory crosses DLL boundaries.
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /FS")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FS")
+endif()
+set(CLAWSPAN_PREV_CXX_STANDARD ${CMAKE_CXX_STANDARD})
+set(CMAKE_CXX_STANDARD 17)
+add_subdirectory(third_party/grpc EXCLUDE_FROM_ALL)
+set(CMAKE_CXX_STANDARD ${CLAWSPAN_PREV_CXX_STANDARD})
+if(MSVC AND TARGET grpc)
+    set_property(TARGET grpc PROPERTY CXX_STANDARD 17)
+    target_compile_options(grpc PRIVATE /std:c++17 /Z7 /FS /MP1)
+endif()
+
+set(CLAWSPAN_VM_CHANNEL_PROTO "${CMAKE_SOURCE_DIR}/proto/vm_channel.proto")
+set(CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR "${CMAKE_BINARY_DIR}/generated/vm_channel")
+file(MAKE_DIRECTORY "${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}")
+
+set(CLAWSPAN_VM_CHANNEL_PROTO_SRCS
+    "${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}/vm_channel.pb.cc"
+    "${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}/vm_channel.grpc.pb.cc"
+)
+set(CLAWSPAN_VM_CHANNEL_PROTO_HDRS
+    "${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}/vm_channel.pb.h"
+    "${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}/vm_channel.grpc.pb.h"
+)
+
+add_custom_command(
+    OUTPUT ${CLAWSPAN_VM_CHANNEL_PROTO_SRCS} ${CLAWSPAN_VM_CHANNEL_PROTO_HDRS}
+    COMMAND protobuf::protoc
+    ARGS
+        "--proto_path=${CMAKE_SOURCE_DIR}/proto"
+        "--cpp_out=${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}"
+        "--grpc_out=${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}"
+        "--plugin=protoc-gen-grpc=$<TARGET_FILE:grpc_cpp_plugin>"
+        "${CLAWSPAN_VM_CHANNEL_PROTO}"
+    DEPENDS
+        "${CLAWSPAN_VM_CHANNEL_PROTO}"
+        protobuf::protoc
+        grpc_cpp_plugin
+)
+
+add_library(clawspan_vm_channel_proto STATIC
+    ${CLAWSPAN_VM_CHANNEL_PROTO_SRCS}
+)
+target_include_directories(clawspan_vm_channel_proto PUBLIC
+    "${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}"
+)
+target_link_libraries(clawspan_vm_channel_proto PUBLIC
+    grpc++
+    protobuf::libprotobuf
+)
 
 # ─── Windows 特定全局设置 ─────────────────────────────────────────────────────
 
@@ -37,10 +91,15 @@ if(WIN32)
     # Windows SDK 最低版本：Windows 10（Named Pipe + UIA 均需要）
     add_compile_definitions(_WIN32_WINNT=0x0A00)
     # 强制 MSVC 以 UTF-8 解析源文件（解决含中文注释的头文件在 GBK 代码页下的解析错误）
-    add_compile_options(/utf-8)
-    # 发行包开箱即用：静态链接 MSVC Runtime，避免用户机器缺失 VC++ Redistributable。
-    # Debug 配置对应 /MTd，Release/RelWithDebInfo/MinSizeRel 对应 /MT。
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    add_compile_options(/utf-8 /FS)
+    # Keep one shared CRT for all modules (exe + plugins + grpc deps).
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+
+    # Bundle VC++ runtime DLLs into dist/bin for zero-install user experience.
+    # This keeps the safer shared CRT model while avoiding user-side redist install.
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
+    set(CMAKE_INSTALL_DEBUG_LIBRARIES FALSE)
+    include(InstallRequiredSystemLibraries)
 endif()
 
 # ─── Third-party: header-only interface targets ───────────────────────────────
@@ -102,63 +161,26 @@ target_include_directories(clawspan_headers INTERFACE
 )
 target_link_libraries(clawspan_headers INTERFACE third_party)
 
-set(CHANNEL3_PROTO_DIR "${CMAKE_SOURCE_DIR}/proto")
-set(CHANNEL3_PROTO_FILE "${CHANNEL3_PROTO_DIR}/channel3.proto")
-set(CHANNEL3_PROTO_GEN_DIR "${CMAKE_BINARY_DIR}/generated/channel3")
-file(MAKE_DIRECTORY "${CHANNEL3_PROTO_GEN_DIR}")
-
-set(CHANNEL3_PROTO_SRCS
-    "${CHANNEL3_PROTO_GEN_DIR}/channel3.pb.cc"
-    "${CHANNEL3_PROTO_GEN_DIR}/channel3.grpc.pb.cc"
+add_library(clawspan_audit STATIC
+    daemon-service/audit/audit_service.cc
 )
-set(CHANNEL3_PROTO_HDRS
-    "${CHANNEL3_PROTO_GEN_DIR}/channel3.pb.h"
-    "${CHANNEL3_PROTO_GEN_DIR}/channel3.grpc.pb.h"
-)
-
-add_custom_command(
-    OUTPUT
-        ${CHANNEL3_PROTO_SRCS}
-        ${CHANNEL3_PROTO_HDRS}
-    COMMAND $<TARGET_FILE:protobuf::protoc>
-    ARGS
-        --proto_path=${CHANNEL3_PROTO_DIR}
-        --cpp_out=${CHANNEL3_PROTO_GEN_DIR}
-        --grpc_out=${CHANNEL3_PROTO_GEN_DIR}
-        --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
-        ${CHANNEL3_PROTO_FILE}
-    DEPENDS
-        ${CHANNEL3_PROTO_FILE}
-        protobuf::protoc
-        gRPC::grpc_cpp_plugin
-    VERBATIM
-)
-
-add_library(clawspan_channel3_proto STATIC
-    ${CHANNEL3_PROTO_SRCS}
-    ${CHANNEL3_PROTO_HDRS}
-)
-target_include_directories(clawspan_channel3_proto PUBLIC
-    ${CHANNEL3_PROTO_GEN_DIR}
-    ${CLAWSPAN_GRPC_INCLUDE_DIRS}
-    ${CLAWSPAN_PROTOBUF_INCLUDE_DIRS}
-)
-target_link_libraries(clawspan_channel3_proto PUBLIC
-    protobuf::libprotobuf
-    gRPC::grpc++
-)
-
-add_library(clawspan_channel3 STATIC
-    daemon-service/channel3/channel3_grpc_server.cc
-)
-target_include_directories(clawspan_channel3 PUBLIC
+target_include_directories(clawspan_audit PUBLIC
     ${CMAKE_SOURCE_DIR}/daemon-service
-    ${CHANNEL3_PROTO_GEN_DIR}
-    ${CLAWSPAN_GRPC_INCLUDE_DIRS}
-    ${CLAWSPAN_PROTOBUF_INCLUDE_DIRS}
 )
-target_link_libraries(clawspan_channel3 PUBLIC
-    clawspan_channel3_proto
+target_link_libraries(clawspan_audit PUBLIC
+    clawspan_headers
+)
+
+add_library(clawspan_vm_channel STATIC
+    daemon-service/vm_channel/gateway/gateway_host_server.cc
+    daemon-service/vm_channel/grpc/vm_channel_grpc_server.cc
+)
+target_include_directories(clawspan_vm_channel PUBLIC
+    ${CMAKE_SOURCE_DIR}/daemon-service
+)
+target_link_libraries(clawspan_vm_channel PUBLIC
+    clawspan_audit
+    clawspan_vm_channel_proto
     clawspan_headers
 )
 
@@ -212,6 +234,20 @@ target_include_directories(security_filter PRIVATE
     ${CMAKE_SOURCE_DIR}/daemon-service/security/filter
 )
 target_link_libraries(security_filter PRIVATE clawspan_core clawspan_headers)
+set_target_properties(security_filter PROPERTIES
+    OUTPUT_NAME  "security_filter"
+    # Keep plugin outputs in one directory for dev-mode config loading.
+    LIBRARY_OUTPUT_DIRECTORY                "${CMAKE_BINARY_DIR}/daemon-service"
+    RUNTIME_OUTPUT_DIRECTORY                "${CMAKE_BINARY_DIR}/daemon-service"
+    LIBRARY_OUTPUT_DIRECTORY_DEBUG          "${CMAKE_BINARY_DIR}/daemon-service"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG          "${CMAKE_BINARY_DIR}/daemon-service"
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE        "${CMAKE_BINARY_DIR}/daemon-service"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE        "${CMAKE_BINARY_DIR}/daemon-service"
+    LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL     "${CMAKE_BINARY_DIR}/daemon-service"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL     "${CMAKE_BINARY_DIR}/daemon-service"
+    LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/daemon-service"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/daemon-service"
+)
 
 # ─── Daemon executable ───────────────────────────────────────────────────────
 
@@ -226,13 +262,10 @@ target_include_directories(claw_span_service PRIVATE
 )
 target_link_libraries(claw_span_service PRIVATE
     clawspan_core
-    clawspan_channel3
-    clawspan_channel3_proto
+    clawspan_vm_channel
     clawspan_ipc
     clawspan_vmm
     clawspan_headers
-    protobuf::libprotobuf
-    gRPC::grpc++
 )
 target_compile_definitions(claw_span_service PRIVATE
     CLAWSPAN_VERSION="${PROJECT_VERSION}"
@@ -312,6 +345,18 @@ add_custom_target(dist
     DEPENDS claw_span_service clawspan_vmm_exe capability_ax security_filter
 )
 
+if(WIN32 AND CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
+    foreach(runtime_dll IN LISTS CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
+        add_custom_command(TARGET dist POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${runtime_dll}"
+                "${CLAWSPAN_DIST_DIR}/bin"
+            COMMENT "Copying VC++ runtime: ${runtime_dll}"
+            VERBATIM
+        )
+    endforeach()
+endif()
+
 if(DOTNET_EXECUTABLE)
     add_custom_command(TARGET dist POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E env DOTNET_CLI_UI_LANGUAGE=en-US
@@ -358,14 +403,55 @@ endif()
 option(BUILD_TESTS "Build test programs" OFF)
 if(BUILD_TESTS)
     enable_testing()
+    set(CLAWSPAN_LOCAL_GTEST_DIR
+        "${CMAKE_SOURCE_DIR}/third_party/googletest")
+    set(CLAWSPAN_LOCAL_GTEST_FALLBACK_DIR
+        "${CMAKE_SOURCE_DIR}/third_party/grpc/third_party/googletest")
+    set(CLAWSPAN_GTEST_READY OFF)
 
-    # ── Google Test（vcpkg 提供）────────────────────────────────────────────
-    find_package(GTest CONFIG REQUIRED)
+    if(EXISTS "${CLAWSPAN_LOCAL_GTEST_DIR}/CMakeLists.txt")
+        set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+        add_subdirectory("${CLAWSPAN_LOCAL_GTEST_DIR}"
+                         "${CMAKE_BINARY_DIR}/third_party/googletest"
+                         EXCLUDE_FROM_ALL)
+        if(TARGET gtest AND NOT TARGET GTest::gtest)
+            add_library(GTest::gtest ALIAS gtest)
+        endif()
+        if(TARGET gtest_main AND NOT TARGET GTest::gtest_main)
+            add_library(GTest::gtest_main ALIAS gtest_main)
+        endif()
+        set(CLAWSPAN_GTEST_READY ON)
+    elseif(EXISTS "${CLAWSPAN_LOCAL_GTEST_FALLBACK_DIR}/CMakeLists.txt")
+        set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+        add_subdirectory("${CLAWSPAN_LOCAL_GTEST_FALLBACK_DIR}"
+                         "${CMAKE_BINARY_DIR}/third_party/googletest"
+                         EXCLUDE_FROM_ALL)
+        if(TARGET gtest AND NOT TARGET GTest::gtest)
+            add_library(GTest::gtest ALIAS gtest)
+        endif()
+        if(TARGET gtest_main AND NOT TARGET GTest::gtest_main)
+            add_library(GTest::gtest_main ALIAS gtest_main)
+        endif()
+        set(CLAWSPAN_GTEST_READY ON)
+    else()
+        find_package(GTest CONFIG QUIET)
+        if(TARGET GTest::gtest AND TARGET GTest::gtest_main)
+            set(CLAWSPAN_GTEST_READY ON)
+        endif()
+    endif()
 
-    # ── Test targets ─────────────────────────────────────────────────────────
-    add_subdirectory(tests/vmm)
-    add_subdirectory(tests/core)
-    add_subdirectory(tests/common)
-    add_subdirectory(tests/ipc)
-    add_subdirectory(tests/security/filter)
+    if(CLAWSPAN_GTEST_READY)
+        # ── Test targets ─────────────────────────────────────────────────────
+        add_subdirectory(tests/vmm)
+        add_subdirectory(tests/core)
+        add_subdirectory(tests/common)
+        add_subdirectory(tests/ipc)
+        add_subdirectory(tests/security/filter)
+    else()
+        message(WARNING
+            "GoogleTest not found (and local grpc/third_party/googletest is unavailable); "
+            "test targets are skipped. Provide GTestConfig.cmake or vendor googletest.")
+    endif()
 endif()

@@ -13,7 +13,7 @@ namespace clawspan {
 namespace ipc {
 
 // ─────────────────────────────────────────────────────────────────────────────
-// UIService：Channel 2 双向事件总线
+// UIService：UI 事件通道双向总线
 //
 // 职责：
 //   1. 维护与 UI 客户端（ClawSpan WinForms）的 Named Pipe 连接
@@ -73,12 +73,12 @@ public:
                                     const std::string& channel);
 
     // createTaskBegin 构造任务开始消息。
-    // 由 daemon 在收到 Channel 1 的 beginTask 消息后调用。
+    // 由 daemon 在收到 VM 控制通道 beginTask 消息后调用。
     static std::string createTaskBegin(const std::string& task_id,
                                        const std::string& root_description);
 
     // createTaskEnd 构造任务结束消息。
-    // 由 daemon 在收到 Channel 1 的 endTask 消息后调用。
+    // 由 daemon 在收到 VM 控制通道 endTask 消息后调用。
     static std::string createTaskEnd(const std::string& task_id);
 
     // createOpLog 构造操作日志消息。

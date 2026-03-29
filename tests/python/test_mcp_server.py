@@ -68,16 +68,16 @@ class _FailingClient(_DummyClient):
 
 
 class McpServerTransportTest(unittest.TestCase):
-	def test_parse_args_default_is_legacy(self) -> None:
+	def test_parse_args_default_is_gateway(self) -> None:
 		args = mcp_server._parse_args([])
-		self.assertEqual(args.channel3_transport, "legacy")
+		self.assertEqual(args.vm_channel_transport, "gateway")
 
 	def test_parse_args_accepts_auto(self) -> None:
-		args = mcp_server._parse_args(["--channel3-transport", "auto"])
-		self.assertEqual(args.channel3_transport, "auto")
+		args = mcp_server._parse_args(["--vm-channel-transport", "auto"])
+		self.assertEqual(args.vm_channel_transport, "auto")
 
 	def test_legacy_mode_uses_legacy_client(self) -> None:
-		server = mcp_server.McpServer(channel3_transport="legacy")
+		server = mcp_server.McpServer(vm_channel_transport="legacy")
 		dummy = _DummyClient()
 
 		with mock.patch.object(mcp_server, "VsockClient", return_value=dummy):
@@ -88,7 +88,7 @@ class McpServerTransportTest(unittest.TestCase):
 		self.assertEqual(server._selected_transport, "legacy")
 
 	def test_grpc_mode_uses_grpc_client(self) -> None:
-		server = mcp_server.McpServer(channel3_transport="grpc")
+		server = mcp_server.McpServer(vm_channel_transport="grpc")
 		dummy = _DummyClient()
 
 		with mock.patch.object(server, "_create_grpc_client", return_value=dummy):
@@ -98,8 +98,8 @@ class McpServerTransportTest(unittest.TestCase):
 		self.assertTrue(dummy.is_connected())
 		self.assertEqual(server._selected_transport, "grpc")
 
-	def test_auto_mode_falls_back_to_legacy(self) -> None:
-		server = mcp_server.McpServer(channel3_transport="auto")
+	def test_auto_mode_prefers_gateway(self) -> None:
+		server = mcp_server.McpServer(vm_channel_transport="auto")
 		legacy = _DummyClient()
 
 		with mock.patch.object(server, "_create_grpc_client", return_value=_FailingClient()):
@@ -108,7 +108,7 @@ class McpServerTransportTest(unittest.TestCase):
 
 		self.assertIs(server._client, legacy)
 		self.assertTrue(legacy.is_connected())
-		self.assertEqual(server._selected_transport, "legacy")
+		self.assertEqual(server._selected_transport, "gateway")
 
 
 if __name__ == "__main__":

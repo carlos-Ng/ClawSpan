@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace ClawSpanUI.Channel
 {
 
-// Channel 2 所有消息类型定义（Daemon ↔ UI 双向通信协议）
+// UI 事件通道所有消息类型定义（Daemon ↔ UI 双向通信协议）
 
 // ─────────────────────────────────────────────────────────────
 // Daemon → UI 方向
@@ -82,7 +82,7 @@ public class OpLogMessage : BaseMessage
 }
 
 // confirm 消息 - 请求用户确认某项操作
-// daemon 在 SecurityChain 返回 NeedConfirm 后通过 Channel 2 推送
+// daemon 在 SecurityChain 返回 NeedConfirm 后通过 UI 事件通道推送
 public class ConfirmMessage : BaseMessage
 {
 	// 请求 ID，用于匹配 confirm_response（daemon 使用字符串 ID）

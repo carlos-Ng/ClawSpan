@@ -9,12 +9,12 @@ using System.Threading.Tasks;
 namespace ClawSpanUI.Channel
 {
 
-// DaemonChannel 负责与 daemon 的 Channel 2（确认通道）通信。
+// DaemonChannel 负责与 daemon 的 UI 事件通道（确认通道）通信。
 // 协议：Length-prefix framing（4 字节大端序长度头 + JSON 消息体）。
 // 断线后自动重连，无需外部干预。
 public class DaemonChannel : IDisposable
 {
-	// Channel 2 Named Pipe 名称（UIService 事件总线）
+	// UI 事件通道 Named Pipe 名称（UIService 事件总线）
 	private const string PIPE_NAME = "crew-shell-service-ui";
 
 	// 断线后重连等待时间（毫秒）

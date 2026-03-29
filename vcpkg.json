@@ -1,6 +1,0 @@
-{
-  "dependencies": [
-    "grpc",
-    "gtest"
-  ]
-}

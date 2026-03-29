@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace ClawSpanUI.Models
 {
 
-// AppState 持有全局运行时状态，是 UI 与 Channel 之间的桥梁。
+// AppState 持有全局运行时状态，是 UI 与通信通道之间的桥梁。
 // 所有公开属性的写操作均通过专用方法完成，内部加锁保证线程安全。
 // 事件在锁外触发，避免死锁。
 public class AppState
@@ -15,7 +15,7 @@ public class AppState
 	// 连接状态
 	// ─────────────────────────────────────────────────────────
 
-	// Channel 2 Named Pipe 是否已连接（即 ClawSpan UI 与 daemon 的确认通道）
+	// UI 事件通道 Named Pipe 是否已连接（即 ClawSpan UI 与 daemon 的确认通道）
 	public bool ChannelConnected { get; private set; }
 
 	// Daemon 是否在线（首次收到 status 消息后为 true）
@@ -57,10 +57,10 @@ public class AppState
 	public event Action<OperationRecord>? OnOperationLogged;
 
 	// ─────────────────────────────────────────────────────────
-	// 状态更新方法（由 MessageDispatcher 调用，运行在 Channel 线程）
+	// 状态更新方法（由 MessageDispatcher 调用，运行在通道线程）
 	// ─────────────────────────────────────────────────────────
 
-	// UpdateChannelConnected 更新 Channel 2 的连接状态。
+	// UpdateChannelConnected 更新 UI 事件通道的连接状态。
 	//
 	// 入参:
 	// - connected: true 表示已连接，false 表示已断开。

@@ -1,13 +1,14 @@
 #include "daemon.h"
 
-#include "channel3/channel3_grpc_server.h"
+#include "vm_channel/grpc/vm_channel_grpc_server.h"
+#include "vm_channel/gateway/gateway_host_server.h"
+#include "vmm/vsock_bridge_server.h"
+#include "vmm/vsock_server.h"
 #include "common/log.h"
 #include "core/base/service.h"
 #include "core/task_registry.h"
 #include "ipc/ui_service.h"
 #include "ipc/windows_ipc_server.h"
-#include "vmm/vsock_bridge_server.h"
-#include "vmm/vsock_server.h"
 #include "vmm_launcher.h"
 
 #include <nlohmann/json.hpp>
@@ -40,13 +41,6 @@ namespace daemon {
 #ifdef _WIN32
 namespace {
 
-// TcpEndpoint 用于把 channel3_grpc.host_listen 解析成 host + port。
-struct TcpEndpoint
-{
-	std::string host;
-	uint16_t    port = 0;
-};
-
 // 控制台退出事件由 Windows CtrlHandler 写入，run() 主循环阻塞等待它。
 static HANDLE g_shutdown_event = INVALID_HANDLE_VALUE;
 
@@ -68,52 +62,44 @@ static BOOL WINAPI consoleCtrlHandler(DWORD ctrl_type)
 	}
 }
 
-// parseTcpEndpoint 解析 host:port 形式的监听地址，供 gRPC bridge 启动使用。
-static Result<TcpEndpoint> parseTcpEndpoint(std::string_view listen_address)
+// normalizeVmChannelMode 把配置值规整为 gateway。
+static std::string normalizeVmChannelMode(std::string mode)
 {
-	const size_t colon_pos = listen_address.rfind(':');
-	if (colon_pos == std::string_view::npos ||
-	    colon_pos == 0 ||
-	    colon_pos + 1 >= listen_address.size()) {
-		return Result<TcpEndpoint>::Error(
-			Status::INVALID_ARGUMENT,
-			"channel3_grpc.host_listen must be in host:port form");
+	if (mode == "gateway") {
+		return mode;
+	}
+	return DaemonConfig::DEFAULT_VM_CHANNEL_MODE;
+}
+
+static uint32_t parseVmChannelPort(std::string_view listen_target)
+{
+	// 支持:
+	// - vsock://<port>
+	// - 其它值回退到默认 100（与 VM 侧 VsockClient 保持一致）
+	constexpr uint32_t kDefaultPort = 100;
+	constexpr std::string_view kPrefix = "vsock://";
+	if (!listen_target.starts_with(kPrefix)) {
+		return kDefaultPort;
 	}
 
-	const std::string host(listen_address.substr(0, colon_pos));
-	const std::string port_text(listen_address.substr(colon_pos + 1));
+	const std::string_view tail = listen_target.substr(kPrefix.size());
+	if (tail.empty()) {
+		return kDefaultPort;
+	}
 
-	try {
-		const unsigned long parsed = std::stoul(port_text);
-		if (parsed == 0 || parsed > 65535) {
-			return Result<TcpEndpoint>::Error(
-				Status::INVALID_ARGUMENT,
-				"channel3_grpc.host_listen port is out of range");
+	uint32_t port = 0;
+	for (char ch : tail) {
+		if (ch < '0' || ch > '9') {
+			return kDefaultPort;
 		}
-		return Result<TcpEndpoint>::Ok(TcpEndpoint{
-			.host = host,
-			.port = static_cast<uint16_t>(parsed),
-		});
-	} catch (const std::exception&) {
-		return Result<TcpEndpoint>::Error(
-			Status::INVALID_ARGUMENT,
-			"channel3_grpc.host_listen port is invalid");
+		port = port * 10 + static_cast<uint32_t>(ch - '0');
 	}
+	return port == 0 ? kDefaultPort : port;
 }
 
-// taskStatusToSuccess 兼容 legacy endTask 的两种写法：
-// - success: bool
-// - status: "success" | ...
-static bool taskStatusToSuccess(const nlohmann::json& msg)
-{
-	if (msg.contains("success") && msg["success"].is_boolean()) {
-		return msg["success"].get<bool>();
-	}
-	if (msg.contains("status") && msg["status"].is_string()) {
-		return msg["status"].get<std::string>() == "success";
-	}
-	return true;
-}
+static constexpr uint32_t kVmChannelGrpcVsockPort = 101;
+static constexpr uint16_t kVmChannelGrpcLocalPort = 50052;
+static constexpr const char* kVmChannelGrpcListenAddress = "127.0.0.1:50052";
 
 } // namespace
 #else
@@ -123,23 +109,23 @@ static bool taskStatusToSuccess(const nlohmann::json& msg)
 // Implement 聚合 daemon 运行时的全部状态与子系统。
 //
 // 这里同时维护：
-// - Channel 1：WindowsIpcServer
-// - Channel 2：UIService
-// - Channel 3 legacy：VsockServer
-// - Channel 3 grpc：Channel3GrpcServer + VsockBridgeServer
+// - VM 控制通道：WindowsIpcServer
+// - UI 事件通道：UIService
+// - VM Gateway 通道：GatewayHostServer
 struct Daemon::Implement
 {
 	core::CapabilityService  service_;
 	core::TaskRegistry       task_registry_;
 	ipc::WindowsIpcServer    ipc_server_;
 	ipc::UIService           ui_service_;
-	std::unique_ptr<vmm::VsockServerInterface>       vsock_server_;
-	std::unique_ptr<channel3::Channel3GrpcServer>    channel3_grpc_server_;
-	std::unique_ptr<vmm::VsockBridgeServerInterface> channel3_grpc_bridge_;
+	std::unique_ptr<vm_channel::gateway::GatewayHostServer> gateway_host_server_;
+	std::unique_ptr<vm_channel::grpc::VmChannelGrpcServer> vm_channel_grpc_server_;
+	std::unique_ptr<vmm::VsockBridgeServerInterface> vm_channel_grpc_bridge_server_;
+	std::unique_ptr<vmm::VsockServerInterface> vm_gateway_vsock_server_;
 	VmmLauncher              vmm_launcher_;
 	DaemonConfig             config_;
 	std::atomic<bool>        running_{false};
-	std::atomic<int>         channel_connection_count_{0};
+	std::atomic<int>         vm_gateway_connection_count_{0};
 
 	// ── 系统状态（UI status 三维模型）──────────────────────────
 	std::mutex               status_mutex_;
@@ -201,7 +187,7 @@ struct Daemon::Implement
 		pushStatus();
 	}
 
-	// updateChannelState 更新 Channel 状态并推送到 UI。
+	// updateChannelState 更新调用通道状态并推送到 UI。
 	void updateChannelState(const std::string& state)
 	{
 		{
@@ -213,20 +199,20 @@ struct Daemon::Implement
 		pushStatus();
 	}
 
-	// onChannelConnectionChanged 聚合 legacy/gRPC 两条 Channel 3 链路的连接数，
-	// 避免 UI 只感知其中一条路径。
+	// onChannelConnectionChanged 维护 VM Gateway 通道连接数，
+	// 避免 UI 状态与实际通道活跃度不一致。
 	void onChannelConnectionChanged(const char* transport_name, bool connected)
 	{
 		int previous = 0;
 		int current = 0;
 		if (connected) {
-			previous = channel_connection_count_.fetch_add(1);
+			previous = vm_gateway_connection_count_.fetch_add(1);
 			current = previous + 1;
 		} else {
-			previous = channel_connection_count_.fetch_sub(1);
+			previous = vm_gateway_connection_count_.fetch_sub(1);
 			current = previous - 1;
 			if (current < 0) {
-				channel_connection_count_.store(0);
+				vm_gateway_connection_count_.store(0);
 				current = 0;
 			}
 		}
@@ -310,60 +296,7 @@ struct Daemon::Implement
 		return false;
 	}
 
-	// startVmBoundChannel3Servers 在已获取到 WSL2 RuntimeId 后启动 Host 侧 Channel 3。
-	// 这里会同时处理：
-	// - legacy vsock server
-	// - gRPC vsock bridge
-	void startVmBoundChannel3Servers()
-	{
-		const bool need_legacy = (vsock_server_ != nullptr && !vsock_server_->isRunning());
-		const bool need_grpc_bridge =
-			(channel3_grpc_bridge_ != nullptr && !channel3_grpc_bridge_->isRunning());
-		if (!need_legacy && !need_grpc_bridge) {
-			return;
-		}
-
-		GUID vm_guid{};
-		if (!vmm::discoverWsl2VmId(&vm_guid)) {
-			LOG_WARN("daemon: could not discover WSL2 VM RuntimeId, channel 3 vsock listeners remain unavailable");
-			return;
-		}
-
-		if (need_legacy) {
-			vsock_server_->setVmId(&vm_guid);
-			auto st = vsock_server_->start(config_.vsock_port);
-			if (st.ok()) {
-				LOG_INFO("daemon: legacy channel3 vsock server started on port {}", config_.vsock_port);
-			} else {
-				LOG_WARN("daemon: legacy channel3 vsock server start failed: {}", st.message);
-			}
-		}
-
-		if (need_grpc_bridge) {
-			auto endpoint = parseTcpEndpoint(config_.channel3_grpc_host_listen);
-			if (endpoint.failure()) {
-				LOG_WARN("daemon: channel3 grpc bridge config invalid: {}", endpoint.error().message);
-				return;
-			}
-
-			channel3_grpc_bridge_->setVmId(&vm_guid);
-			auto st = channel3_grpc_bridge_->start(
-				config_.channel3_grpc_vsock_port,
-				endpoint.value().host,
-				endpoint.value().port);
-			if (st.ok()) {
-				LOG_INFO("daemon: channel3 grpc bridge started on vsock port {} -> {}:{}",
-				         config_.channel3_grpc_vsock_port,
-				         endpoint.value().host,
-				         endpoint.value().port);
-			} else {
-				LOG_WARN("daemon: channel3 grpc bridge start failed: {}", st.message);
-			}
-		}
-	}
-
 	// startHealthThread 负责延迟确认 VM 状态，并周期性探测 OpenClaw。
-	// 之所以把 Channel 3 启动放在这里，是因为 WSL2 RuntimeId 往往需要等 VM 真正起来后才能拿到。
 	void startHealthThread(const std::string& /*distro_name*/)
 	{
 		health_stop_event_ = ::CreateEventA(nullptr, TRUE, FALSE, nullptr);
@@ -379,8 +312,6 @@ struct Daemon::Implement
 			if (vmm_launcher_.isRunning()) {
 				updateVmState("running");
 			}
-
-			startVmBoundChannel3Servers();
 
 			// 第二阶段：周期探测 OpenClaw Gateway 端口（每 10 秒）
 			for (;;) {
@@ -413,8 +344,8 @@ struct Daemon::Implement
 		}
 	}
 
-	// beginTask / endTask / callCapability 是 Channel 1、legacy Channel 3、
-	// gRPC Channel 3 三条入口共用的业务逻辑，避免行为漂移。
+	// beginTask / endTask / callCapability 是 VM 控制通道与 VM Gateway
+	// 共用的业务逻辑，避免行为漂移。
 	std::string beginTask(const std::string& description,
 	                      const std::string& root_description,
 	                      const std::string& parent_task_id,
@@ -452,11 +383,238 @@ struct Daemon::Implement
 	                                      const std::string& operation,
 	                                      const nlohmann::json& params)
 	{
-		LOG_DEBUG("channel3: capability '{}' op '{}' task '{}'",
+		LOG_DEBUG("vm_channel: capability '{}' op '{}' task '{}'",
 		          capability,
 		          operation,
 		          task_id);
 		return service_.callCapability(capability, operation, params, task_id);
+	}
+
+	// handleVmGatewayFrame 处理 VM Gateway 通道收到的一条 JSON 帧。
+	// 当前同时兼容两种载荷：
+	// - 既有 type-based 请求（beginTask/endTask/capability）
+	// - gateway envelope（payload: heartbeat/control/command_result/log_event/risk_event）
+	std::string handleVmGatewayFrame(const std::string& frame_str)
+	{
+		nlohmann::json msg;
+		try {
+			msg = nlohmann::json::parse(frame_str);
+		} catch (const nlohmann::json::parse_error&) {
+			return nlohmann::json{
+				{"success", false},
+				{"error_code", static_cast<int>(Status::INVALID_ARGUMENT)},
+				{"error_message", "invalid json frame"},
+			}.dump();
+		}
+
+		if (!msg.is_object()) {
+			return nlohmann::json{
+				{"success", false},
+				{"error_code", static_cast<int>(Status::INVALID_ARGUMENT)},
+				{"error_message", "frame root must be json object"},
+			}.dump();
+		}
+
+		// ── gateway envelope 兼容 ───────────────────────────────────────────
+		if (msg.contains("payload") && msg["payload"].is_object()) {
+			const std::string version = msg.value("version", std::string{});
+			auto st = gateway_host_server_->validateEnvelopeVersion(version);
+			if (!st.ok()) {
+				return nlohmann::json{
+					{"success", false},
+					{"error_code", static_cast<int>(st.code)},
+					{"error_message", st.message},
+				}.dump();
+			}
+
+			const std::string session_id = msg.value("session_id", std::string{});
+			const std::string trace_id = msg.value("trace_id", std::string{});
+			const std::string task_id = msg.value("task_id", std::string{});
+			const int64_t now_ms = msg.value(
+				"timestamp_ms",
+				static_cast<int64_t>(
+					std::chrono::duration_cast<std::chrono::milliseconds>(
+						std::chrono::system_clock::now().time_since_epoch()).count()));
+
+			const auto& payload = msg["payload"];
+			if (payload.contains("control") && payload["control"].is_object()) {
+				const auto& control = payload["control"];
+				if (control.value("control_type", std::string{}) == "handshake") {
+					auto ack = gateway_host_server_->handleHandshake(session_id, now_ms);
+					if (ack.failure()) {
+						return nlohmann::json{
+							{"success", false},
+							{"error_code", static_cast<int>(ack.error().code)},
+							{"error_message", ack.error().message},
+						}.dump();
+					}
+					return nlohmann::json{
+						{"version", "v1"},
+						{"message_id", msg.value("message_id", std::string{}) + "-ack"},
+						{"session_id", ack.value().session_id},
+						{"trace_id", trace_id},
+						{"task_id", task_id},
+						{"timestamp_ms", now_ms},
+						{"payload", nlohmann::json{
+							{"ack", nlohmann::json{
+								{"ack_message_id", msg.value("message_id", std::string{})},
+								{"accepted", true},
+								{"reason", ack.value().message},
+								{"session_id", ack.value().session_id},
+							}},
+						}},
+					}.dump();
+				}
+			}
+
+			if (payload.contains("heartbeat") && payload["heartbeat"].is_object()) {
+				auto hb_st = gateway_host_server_->refreshSessionHeartbeat(session_id, now_ms);
+				if (hb_st.code == Status::NOT_FOUND) {
+					hb_st = gateway_host_server_->registerSession(session_id, now_ms);
+				}
+				return nlohmann::json{
+					{"success", hb_st.ok()},
+					{"error_code", static_cast<int>(hb_st.code)},
+					{"error_message", hb_st.ok() ? "" : hb_st.message},
+				}.dump();
+			}
+
+			if (payload.contains("command_result") && payload["command_result"].is_object()) {
+				const auto& r = payload["command_result"];
+				vm_channel::gateway::GatewayCommandResult result{
+					.session_id = session_id,
+					.trace_id = trace_id,
+					.task_id = task_id,
+					.command_id = r.value("command_id", std::string{}),
+					.success = r.value("success", false),
+					.error_code = r.value("error_code", 0),
+					.error_message = r.value("error_message", std::string{}),
+					.result_json = r.value("result_json", std::string{}),
+					.completed_at_ms = now_ms,
+				};
+				auto submit_st = gateway_host_server_->submitCommandResult(result);
+				return nlohmann::json{
+					{"success", submit_st.ok()},
+					{"error_code", static_cast<int>(submit_st.code)},
+					{"error_message", submit_st.ok() ? "" : submit_st.message},
+				}.dump();
+			}
+
+			if (payload.contains("log_event") && payload["log_event"].is_object()) {
+				const auto& l = payload["log_event"];
+				vm_channel::gateway::GatewayLogEvent event{
+					.session_id = session_id,
+					.trace_id = trace_id,
+					.task_id = task_id,
+					.event_id = l.value("event_id", std::string{}),
+					.level = l.value("level", std::string{}),
+					.source = l.value("source", std::string{}),
+					.message = l.value("message", std::string{}),
+					.fields_json = l.value("fields_json", std::string{}),
+					.reported_at_ms = now_ms,
+				};
+				auto submit_st = gateway_host_server_->submitLogEvent(event);
+				return nlohmann::json{
+					{"success", submit_st.ok()},
+					{"error_code", static_cast<int>(submit_st.code)},
+					{"error_message", submit_st.ok() ? "" : submit_st.message},
+				}.dump();
+			}
+
+			if (payload.contains("risk_event") && payload["risk_event"].is_object()) {
+				const auto& r = payload["risk_event"];
+				vm_channel::gateway::GatewayRiskEvent event{
+					.session_id = session_id,
+					.trace_id = trace_id,
+					.task_id = task_id,
+					.event_id = r.value("event_id", std::string{}),
+					.severity = r.value("severity", std::string{}),
+					.behavior_type = r.value("behavior_type", std::string{}),
+					.detail = r.value("detail", std::string{}),
+					.extra_json = r.value("extra_json", std::string{}),
+					.reported_at_ms = now_ms,
+				};
+				auto submit_st = gateway_host_server_->submitRiskEvent(event);
+				return nlohmann::json{
+					{"success", submit_st.ok()},
+					{"error_code", static_cast<int>(submit_st.code)},
+					{"error_message", submit_st.ok() ? "" : submit_st.message},
+				}.dump();
+			}
+
+			// envelope 兜底
+			return nlohmann::json{
+				{"success", false},
+				{"error_code", static_cast<int>(Status::INVALID_ARGUMENT)},
+				{"error_message", "unsupported envelope payload"},
+			}.dump();
+		}
+
+		// ── type-based 兼容（供当前 VM 侧 VsockClient 直接使用）───────────────
+		const std::string type = msg.value("type", std::string{});
+		if (type == "beginTask") {
+			const std::string task_id = beginTask(
+				msg.value("description", std::string{}),
+				msg.value("root_description", std::string{}),
+				msg.value("parent_task_id", std::string{}),
+				msg.value("session_id", std::string{}));
+			return nlohmann::json{
+				{"type", "beginTask_response"},
+				{"success", true},
+				{"task_id", task_id},
+			}.dump();
+		}
+
+		if (type == "endTask") {
+			const std::string task_id = msg.value("task_id", std::string{});
+			const std::string status = msg.value("status", std::string{"success"});
+			const bool success = status == "success" || msg.value("success", false);
+			endTask(task_id, success);
+			return nlohmann::json{
+				{"type", "endTask_response"},
+				{"success", true},
+			}.dump();
+		}
+
+		if (type == "capability") {
+			const int id = msg.value("id", 0);
+			const std::string task_id = msg.value("task_id", std::string{});
+			const std::string capability = msg.value("capability", std::string{});
+			const std::string operation = msg.value("operation", std::string{});
+			const auto params = msg.value("params", nlohmann::json::object());
+			if (capability.empty() || operation.empty()) {
+				return nlohmann::json{
+					{"type", "capability_result"},
+					{"id", id},
+					{"success", false},
+					{"error_code", static_cast<int>(Status::INVALID_ARGUMENT)},
+					{"error_message", "capability/operation is required"},
+				}.dump();
+			}
+
+			auto result = callCapability(task_id, capability, operation, params);
+			if (result.success()) {
+				return nlohmann::json{
+					{"type", "capability_result"},
+					{"id", id},
+					{"success", true},
+					{"result", result.value()},
+				}.dump();
+			}
+			return nlohmann::json{
+				{"type", "capability_result"},
+				{"id", id},
+				{"success", false},
+				{"error_code", static_cast<int>(result.error().code)},
+				{"error_message", result.error().message ? result.error().message : ""},
+			}.dump();
+		}
+
+		return nlohmann::json{
+			{"success", false},
+			{"error_code", static_cast<int>(Status::INVALID_ARGUMENT)},
+			{"error_message", "unsupported frame type"},
+		}.dump();
 	}
 
 	// 配置解析与模块注册辅助函数
@@ -469,11 +627,6 @@ struct Daemon::Implement
 	//   - TaskEndHandler（结束任务，推送 UIService 事件）
 	void registerHandlers();
 
-	// onVsockFrame — Channel 3 VsockServer 的帧回调。
-	//
-	// 收到 VM 发来的 FrameCodec 帧后，解析 JSON，根据 "type" 字段直接路由到
-	// CapabilityService / TaskRegistry，响应通过 VsockConnection 发回 VM。
-	void onVsockFrame(vmm::VsockConnection& conn, const std::string& json);
 };
 
 // ─── Implement 方法实现 ──────────────────────────────────────────────────────
@@ -542,29 +695,14 @@ Status Daemon::Implement::parseToml(DaemonConfig& config)
 		fill_int("timeout_secs", config.ui_timeout_secs, DaemonConfig::DEFAULT_UI_TIMEOUT_SECS);
 	}
 
-	if (const auto* vsock_tbl = tbl.get_as<toml::table>("vsock")) {
-		if (auto v = vsock_tbl->get_as<int64_t>("port")) {
-			if (config.vsock_port == DaemonConfig::DEFAULT_VSOCK_PORT) {
-				config.vsock_port = static_cast<uint32_t>(**v);
-			}
+	if (const auto* vm_channel_tbl = tbl.get_as<toml::table>("vm_channel")) {
+		if (auto v = vm_channel_tbl->get_as<std::string>("mode")) {
+			config.vm_channel_mode = normalizeVmChannelMode(**v);
 		}
-		if (auto v = vsock_tbl->get_as<bool>("enabled")) {
-			config.vsock_enabled = **v;
-		}
-	}
-
-	if (const auto* grpc_tbl = tbl.get_as<toml::table>("channel3_grpc")) {
-		if (auto v = grpc_tbl->get_as<bool>("enabled")) {
-			config.channel3_grpc_enabled = **v;
-		}
-		if (auto v = grpc_tbl->get_as<std::string>("host_listen")) {
-			if (config.channel3_grpc_host_listen == DaemonConfig::DEFAULT_CHANNEL3_GRPC_HOST_LISTEN) {
-				config.channel3_grpc_host_listen = **v;
-			}
-		}
-		if (auto v = grpc_tbl->get_as<int64_t>("vsock_port")) {
-			if (config.channel3_grpc_vsock_port == DaemonConfig::DEFAULT_CHANNEL3_GRPC_VSOCK_PORT) {
-				config.channel3_grpc_vsock_port = static_cast<uint32_t>(**v);
+		if (auto v = vm_channel_tbl->get_as<std::string>("gateway_listen_target")) {
+			if (config.vm_channel_gateway_listen_target ==
+			    DaemonConfig::DEFAULT_VM_CHANNEL_GATEWAY_LISTEN_TARGET) {
+				config.vm_channel_gateway_listen_target = **v;
 			}
 		}
 	}
@@ -624,7 +762,7 @@ void Daemon::Implement::buildModuleConfig(const toml::table& tbl, core::ModuleSp
 	}
 }
 
-// registerHandlers 把 Channel 1 的 capability/task handler 注册到 WindowsIpcServer。
+// registerHandlers 把 VM 控制通道的 capability/task handler 注册到 WindowsIpcServer。
 void Daemon::Implement::registerHandlers()
 {
 	for (const auto& cap_name : service_.capabilityNames()) {
@@ -650,98 +788,6 @@ void Daemon::Implement::registerHandlers()
 	    [this](const std::string& task_id, bool success) {
 			endTask(task_id, success);
 	    });
-}
-
-// onVsockFrame 负责处理 legacy Channel 3 的三类 JSON 消息：
-// - capability
-// - beginTask
-// - endTask
-void Daemon::Implement::onVsockFrame(vmm::VsockConnection& conn, const std::string& json)
-{
-	nlohmann::json msg;
-	try {
-		msg = nlohmann::json::parse(json);
-	} catch (const std::exception& e) {
-		LOG_ERROR("vsock: invalid JSON from VM: {}", e.what());
-		nlohmann::json err = {
-			{"success", false},
-			{"error_message", std::string("invalid JSON: ") + e.what()},
-		};
-		conn.sendFrame(err.dump());
-		return;
-	}
-
-	const std::string type = msg.value("type", std::string{});
-
-	if (type == "capability") {
-		// ── capability 调用 → CapabilityService ────────────────────────────
-		const std::string task_id    = msg.value("task_id",    std::string{});
-		const std::string capability = msg.value("capability", std::string{});
-		const std::string operation  = msg.value("operation",  std::string{});
-		const nlohmann::json params  = msg.value("params",     nlohmann::json::object());
-		
-		LOG_DEBUG("vsock: capability '{}' op '{}' task '{}'", capability, operation, task_id);
-		
-		auto result = callCapability(task_id, capability, operation, params);
-
-		nlohmann::json resp;
-		if (result.success()) {
-			resp = {
-				{"success", true},
-				{"result",  result.value()},
-			};
-		} else {
-			resp = {
-				{"success",       false},
-				{"error_code",    static_cast<int>(result.error().code)},
-				{"error_message", std::string(result.error().message)},
-			};
-		}
-		conn.sendFrame(resp.dump());
-		return;
-	}
-
-	if (type == "beginTask") {
-		// ── 任务开始 → TaskRegistry ────────────────────────────────────────
-		const std::string description      = msg.value("description",      std::string{});
-		const std::string root_description = msg.value("root_description", std::string{});
-		const std::string parent_task_id   = msg.value("parent_task_id",   std::string{});
-		const std::string session_id       = msg.value("session_id",       std::string{});
-
-		LOG_DEBUG("vsock: beginTask session '{}' desc '{}'", session_id, description);
-
-		const std::string task_id = beginTask(
-			description, root_description, parent_task_id, session_id);
-
-		nlohmann::json resp = {
-			{"type",    "beginTask_response"},
-			{"task_id", task_id},
-		};
-		conn.sendFrame(resp.dump());
-		return;
-	}
-
-	if (type == "endTask") {
-		// ── 任务结束 → TaskRegistry ────────────────────────────────────────
-		const std::string task_id = msg.value("task_id", std::string{});
-		const bool success        = taskStatusToSuccess(msg);
-
-		endTask(task_id, success);
-
-		nlohmann::json resp = {
-			{"type",    "endTask_response"},
-			{"success", true},
-		};
-		conn.sendFrame(resp.dump());
-		return;
-	}
-
-	LOG_WARN("vsock: unknown message type from VM: '{}'", type);
-	nlohmann::json err = {
-		{"success", false},
-		{"error_message", "unknown message type: " + type},
-	};
-	conn.sendFrame(err.dump());
 }
 
 // ─── Daemon 公开接口 ─────────────────────────────────────────────────────────
@@ -786,7 +832,7 @@ Status Daemon::init(DaemonConfig config)
 	// 5. 将 TaskRegistry 注入 CapabilityService
 	implement_->service_.setTaskRegistry(&implement_->task_registry_);
 
-	// 6. 启动 UIService（Channel 2）
+	// 6. 启动 UIService（UI 事件通道）
 	{
 		ipc::ConfirmTimeoutMode timeout_mode = ipc::ConfirmTimeoutMode::TIMEOUT_DENY;
 		if (config.ui_timeout_mode == "wait_forever") {
@@ -810,68 +856,116 @@ Status Daemon::init(DaemonConfig config)
 			implement_->service_.setUIService(&implement_->ui_service_);
 			LOG_INFO("ui service listening on {}", config.ui_pipe_path);
 
-			// Channel 1/3 连接变更时更新 channel 状态并推送到 UI
+			// VM 控制通道连接变更时更新状态并推送到 UI
 			implement_->ipc_server_.setOnConnectionChanged([](int count) {
-				LOG_INFO("daemon: channel 1 connection count changed to {}", count);
+				LOG_INFO("daemon: vm_control channel connection count changed to {}", count);
 			});
 		}
 	}
 
-	// 7. 注册所有 Channel 1 处理器（capability + beginTask + endTask）
+	// 7. 注册 VM 控制通道处理器（capability + beginTask + endTask）
 	implement_->registerHandlers();
 
-	// 8. 启动 Channel 3
-	if (config.channel3_grpc_enabled) {
-		implement_->channel3_grpc_server_ = std::make_unique<channel3::Channel3GrpcServer>(
+	// 8. 启动 VM Gateway 通道
+	config.vm_channel_mode = normalizeVmChannelMode(config.vm_channel_mode);
+	LOG_INFO("vm_channel mode: {}", config.vm_channel_mode);
+	if (config.vm_channel_mode != "gateway") {
+		LOG_ERROR("vm_channel mode '{}' is no longer supported, expected 'gateway'",
+		          config.vm_channel_mode);
+		return Status(Status::INVALID_ARGUMENT, "unsupported vm_channel.mode");
+	}
+
+	implement_->gateway_host_server_ = std::make_unique<vm_channel::gateway::GatewayHostServer>();
+	auto gateway_status = implement_->gateway_host_server_->start(
+		config.vm_channel_gateway_listen_target);
+	if (!gateway_status.ok()) {
+		LOG_WARN("vm_channel gateway: host server start failed: {}", gateway_status.message);
+		implement_->gateway_host_server_.reset();
+	} else {
+		// 启动 Host 侧 AF_HYPERV 监听，接收 VM 的 FrameCodec 帧并路由到 gateway 逻辑。
+		implement_->vm_gateway_vsock_server_ = vmm::createVsockServer(
+			[this](vmm::VsockConnection& conn, const std::string& json) {
+				const std::string response = implement_->handleVmGatewayFrame(json);
+				auto st = conn.sendFrame(response);
+				if (!st.ok()) {
+					LOG_WARN("vm_channel gateway: failed to send response frame: {}", st.message);
+				}
+			},
+			[this](bool connected) {
+				implement_->onChannelConnectionChanged("vm_gateway", connected);
+			});
+
+		GUID runtime_id{};
+		if (vmm::discoverWsl2VmId(&runtime_id)) {
+			implement_->vm_gateway_vsock_server_->setVmId(&runtime_id);
+		} else {
+			LOG_WARN("vm_channel gateway: discoverWsl2VmId failed, fallback to wildcard bind");
+		}
+
+		const uint32_t vsock_port = parseVmChannelPort(config.vm_channel_gateway_listen_target);
+		auto vsock_status = implement_->vm_gateway_vsock_server_->start(vsock_port);
+		if (!vsock_status.ok()) {
+			LOG_WARN("vm_channel gateway: vsock server start failed on port {}: {}",
+			         vsock_port,
+			         vsock_status.message);
+			implement_->vm_gateway_vsock_server_.reset();
+		} else {
+			LOG_INFO("vm_channel gateway: vsock server listening on port {}", vsock_port);
+		}
+	}
+
+	// 8.1 启动 gRPC VM Channel（供 VM 侧 grpc transport 使用）:
+	//     - daemon 内监听 127.0.0.1:50052
+	//     - Host AF_HYPERV bridge 转发 vsock:101 -> 127.0.0.1:50052
+	implement_->vm_channel_grpc_server_ =
+		std::make_unique<vm_channel::grpc::VmChannelGrpcServer>(
 			[this](const std::string& description,
 			       const std::string& root_description,
 			       const std::string& parent_task_id,
 			       const std::string& session_id) {
-				return implement_->beginTask(
-					description,
-					root_description,
-					parent_task_id,
-					session_id);
+				return implement_->beginTask(description, root_description, parent_task_id, session_id);
 			},
 			[this](const std::string& task_id, bool success) {
 				implement_->endTask(task_id, success);
 			},
-			[this](const std::string&    task_id,
-			       const std::string&    capability,
-			       const std::string&    operation,
+			[this](const std::string& task_id,
+			       const std::string& capability,
+			       const std::string& operation,
 			       const nlohmann::json& params) {
 				return implement_->callCapability(task_id, capability, operation, params);
 			});
-
-		auto grpc_status = implement_->channel3_grpc_server_->start(config.channel3_grpc_host_listen);
-		if (!grpc_status.ok()) {
-			LOG_WARN("channel3 grpc: server start failed: {}, grpc stack disabled", grpc_status.message);
-			implement_->channel3_grpc_server_.reset();
-		} else {
-			implement_->channel3_grpc_bridge_ = vmm::createVsockBridgeServer(
-				[this](bool connected) {
-					implement_->onChannelConnectionChanged("channel3 grpc bridge", connected);
-				});
-		}
+	auto grpc_status = implement_->vm_channel_grpc_server_->start(kVmChannelGrpcListenAddress);
+	if (!grpc_status.ok()) {
+		LOG_WARN("vm_channel grpc: server start failed: {}", grpc_status.message);
+		implement_->vm_channel_grpc_server_.reset();
 	} else {
-		LOG_INFO("channel3 grpc stack disabled by config");
-	}
-
-	if (config.vsock_enabled) {
-		implement_->vsock_server_ = vmm::createVsockServer(
-			[this](vmm::VsockConnection& conn, const std::string& json) {
-				implement_->onVsockFrame(conn, json);
-			},
+		implement_->vm_channel_grpc_bridge_server_ = vmm::createVsockBridgeServer(
 			[this](bool connected) {
-				implement_->onChannelConnectionChanged("legacy channel3 vsock", connected);
+				implement_->onChannelConnectionChanged("vm_channel_grpc_bridge", connected);
 			});
-		LOG_INFO("legacy channel3 vsock server instance created");
-	} else {
-		LOG_INFO("legacy channel3 vsock server disabled by config");
+
+		GUID runtime_id{};
+		if (vmm::discoverWsl2VmId(&runtime_id)) {
+			implement_->vm_channel_grpc_bridge_server_->setVmId(&runtime_id);
+		} else {
+			LOG_WARN("vm_channel grpc bridge: discoverWsl2VmId failed, fallback to wildcard bind");
+		}
+
+		auto bridge_status = implement_->vm_channel_grpc_bridge_server_->start(
+			kVmChannelGrpcVsockPort, "127.0.0.1", kVmChannelGrpcLocalPort);
+		if (!bridge_status.ok()) {
+			LOG_WARN("vm_channel grpc bridge: start failed: {}", bridge_status.message);
+			implement_->vm_channel_grpc_bridge_server_.reset();
+			implement_->vm_channel_grpc_server_->stop();
+			implement_->vm_channel_grpc_server_.reset();
+		} else {
+			LOG_INFO("vm_channel grpc bridge: listening on vsock port {} -> 127.0.0.1:{}",
+			         kVmChannelGrpcVsockPort,
+			         kVmChannelGrpcLocalPort);
+		}
 	}
 
 	implement_->config_ = config;
-	implement_->startVmBoundChannel3Servers();
 
 	if (config.vmm_auto_start) {
 		VmmLauncherConfig vmm_cfg;
@@ -946,7 +1040,7 @@ bool Daemon::run()
 	return true;
 }
 
-// stop 按“先后台线程、再 VM、再 Channel 3、再 Channel 1”的顺序停机，
+// stop 按“先后台线程、再 VM、再 VM Gateway 通道、再 VM 控制通道”的顺序停机，
 // 尽量保持资源释放顺序清晰，避免残留连接和竞争。
 void Daemon::stop()
 {
@@ -955,9 +1049,10 @@ void Daemon::stop()
 
 	if (!was_running &&
 	    implement_->health_stop_event_ == INVALID_HANDLE_VALUE &&
-	    implement_->vsock_server_ == nullptr &&
-	    implement_->channel3_grpc_server_ == nullptr &&
-	    implement_->channel3_grpc_bridge_ == nullptr) {
+	    implement_->gateway_host_server_ == nullptr &&
+	    implement_->vm_channel_grpc_server_ == nullptr &&
+	    implement_->vm_channel_grpc_bridge_server_ == nullptr &&
+	    implement_->vm_gateway_vsock_server_ == nullptr) {
 		return;
 	}
 
@@ -968,19 +1063,25 @@ void Daemon::stop()
 	// 停止 vmm.exe（断开对 daemon 的管理连接）
 	implement_->vmm_launcher_.stop();
 
-	if (implement_->channel3_grpc_bridge_) {
-		implement_->channel3_grpc_bridge_->stop();
+	if (implement_->vm_gateway_vsock_server_) {
+		implement_->vm_gateway_vsock_server_->stop();
+		implement_->vm_gateway_vsock_server_.reset();
 	}
-	if (implement_->channel3_grpc_server_) {
-		implement_->channel3_grpc_server_->stop();
+	if (implement_->vm_channel_grpc_bridge_server_) {
+		implement_->vm_channel_grpc_bridge_server_->stop();
+		implement_->vm_channel_grpc_bridge_server_.reset();
 	}
-	if (implement_->vsock_server_) {
-		implement_->vsock_server_->stop();
+	if (implement_->vm_channel_grpc_server_) {
+		implement_->vm_channel_grpc_server_->stop();
+		implement_->vm_channel_grpc_server_.reset();
+	}
+	if (implement_->gateway_host_server_) {
+		implement_->gateway_host_server_->stop();
 	}
 
 	implement_->ipc_server_.stop();
 	implement_->service_.release();
-	implement_->channel_connection_count_.store(0);
+	implement_->vm_gateway_connection_count_.store(0);
 	implement_->updateChannelState("idle");
 	LOG_INFO("daemon stopped");
 }

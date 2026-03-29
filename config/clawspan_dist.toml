@@ -11,25 +11,18 @@ log_level        = "debug"
 # 插件 DLL 目录：dist/modules/（相对于 dist/ 工作目录）
 module_dir = "modules"
 
-# ── UIService (Channel 2) ────────────────────────────────────────────────────
+# ── UIService (UI 事件通道) ──────────────────────────────────────────────────
 
 [ui]
 pipe_path    = "\\\\.\\pipe\\crew-shell-service-ui"
 timeout_mode = "timeout_deny"
 timeout_secs = 60
 
-# ── VsockServer (Channel 3: VM 直连) ───────────────────────────────────────
+# ── VM Channel Gateway（重构后唯一链路） ────────────────────────────────────
 
-[vsock]
-port    = 100
-enabled = true
-
-# ──  (Channel 3 gRPC版: VM 直连) ──────────────────────────────────────────────────
-
-[channel3_grpc]
-enabled     = true
-host_listen = "127.0.0.1:50051"
-vsock_port  = 101
+[vm_channel]
+mode = "gateway"
+gateway_listen_target = "vsock://vm-channel-gateway"
 
 # ── VMM (VM 生命周期管理) ──────────────────────────────────────────────────
 

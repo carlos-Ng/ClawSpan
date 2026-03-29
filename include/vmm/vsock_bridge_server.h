@@ -15,10 +15,10 @@ namespace clawspan {
 namespace vmm {
 
 // BridgeConnectionHandler 在桥接连接建立或断开时回调。
-// daemon 用它来维护 UI 上的 Channel 3 状态。
+// daemon 用它来维护 UI 上的 VM Gateway 通道状态。
 using BridgeConnectionHandler = std::function<void(bool connected)>;
 
-// VsockBridgeServerInterface 是“字节流转发型” Channel 3 bridge 抽象。
+// VsockBridgeServerInterface 是“字节流转发型” VM Gateway bridge 抽象。
 //
 // 与 legacy VsockServer 不同，这个接口不解析业务帧，
 // 只负责把 VM 侧 Hyper-V socket 流量转发到宿主机本地 TCP 目标。

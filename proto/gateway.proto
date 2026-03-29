@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package clawspan.rpc.gateway.v1;
+
+message Envelope {
+  string version = 1;
+  string message_id = 2;
+  string session_id = 3;
+  string trace_id = 4;
+  string task_id = 5;
+  string stream_id = 6;
+  int64 timestamp_ms = 7;
+
+  oneof payload {
+    Command command = 20;
+    CommandResult command_result = 21;
+    LogEvent log_event = 22;
+    RiskEvent risk_event = 23;
+    Ack ack = 24;
+    Heartbeat heartbeat = 25;
+    Control control = 26;
+  }
+}
+
+message Command {
+  string command_id = 1;
+  string capability = 2;
+  string operation = 3;
+  string params_json = 4;
+}
+
+message CommandResult {
+  string command_id = 1;
+  bool success = 2;
+  int32 error_code = 3;
+  string error_message = 4;
+  string result_json = 5;
+}
+
+message LogEvent {
+  string event_id = 1;
+  string level = 2;
+  string source = 3;
+  string message = 4;
+  string fields_json = 5;
+}
+
+message RiskEvent {
+  string event_id = 1;
+  string severity = 2;
+  string behavior_type = 3;
+  string detail = 4;
+  string extra_json = 5;
+}
+
+message Ack {
+  string ack_message_id = 1;
+  bool accepted = 2;
+  string reason = 3;
+}
+
+message Heartbeat {
+  int64 sent_at_ms = 1;
+}
+
+message Control {
+  string control_type = 1;
+  string message = 2;
+}
+

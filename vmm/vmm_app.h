@@ -3,7 +3,7 @@
 // vmm_app.h — vmm.exe 核心应用类
 //
 // VmmApp 负责 WSL2 distro 的生命周期管理：
-//   - 通过 Channel 1 Named Pipe 连接 daemon，上报 distro 状态
+//   - 通过 VM 控制通道 Named Pipe 连接 daemon，上报 distro 状态
 //   - 接收 daemon 的管理命令（启动/停止/快照等）
 //   - Watchdog 监控 distro 健康状态
 //
@@ -24,7 +24,7 @@ struct VmmConfig
 	// distro 名称（必选）
 	std::string distro_name;
 
-	// daemon Channel 1 Named Pipe 路径（用于管理通道）
+	// daemon VM 控制通道 Named Pipe 路径（用于管理通道）
 	std::string daemon_pipe = "\\\\.\\pipe\\crew-shell-service";
 
 	// 日志级别
