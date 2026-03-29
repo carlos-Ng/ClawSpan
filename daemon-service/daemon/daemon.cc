@@ -1,6 +1,8 @@
 #include "daemon.h"
 
+#include "vm_channel/grpc/vm_channel_grpc_server.h"
 #include "vm_channel/gateway/gateway_host_server.h"
+#include "vmm/vsock_bridge_server.h"
 #include "vmm/vsock_server.h"
 #include "common/log.h"
 #include "core/base/service.h"
@@ -95,6 +97,10 @@ static uint32_t parseVmChannelPort(std::string_view listen_target)
 	return port == 0 ? kDefaultPort : port;
 }
 
+static constexpr uint32_t kVmChannelGrpcVsockPort = 101;
+static constexpr uint16_t kVmChannelGrpcLocalPort = 50052;
+static constexpr const char* kVmChannelGrpcListenAddress = "127.0.0.1:50052";
+
 } // namespace
 #else
 #  error "Platform not supported: add POSIX signal handler implementation here"
@@ -113,6 +119,8 @@ struct Daemon::Implement
 	ipc::WindowsIpcServer    ipc_server_;
 	ipc::UIService           ui_service_;
 	std::unique_ptr<vm_channel::gateway::GatewayHostServer> gateway_host_server_;
+	std::unique_ptr<vm_channel::grpc::VmChannelGrpcServer> vm_channel_grpc_server_;
+	std::unique_ptr<vmm::VsockBridgeServerInterface> vm_channel_grpc_bridge_server_;
 	std::unique_ptr<vmm::VsockServerInterface> vm_gateway_vsock_server_;
 	VmmLauncher              vmm_launcher_;
 	DaemonConfig             config_;
@@ -906,6 +914,57 @@ Status Daemon::init(DaemonConfig config)
 		}
 	}
 
+	// 8.1 启动 gRPC VM Channel（供 VM 侧 grpc transport 使用）:
+	//     - daemon 内监听 127.0.0.1:50052
+	//     - Host AF_HYPERV bridge 转发 vsock:101 -> 127.0.0.1:50052
+	implement_->vm_channel_grpc_server_ =
+		std::make_unique<vm_channel::grpc::VmChannelGrpcServer>(
+			[this](const std::string& description,
+			       const std::string& root_description,
+			       const std::string& parent_task_id,
+			       const std::string& session_id) {
+				return implement_->beginTask(description, root_description, parent_task_id, session_id);
+			},
+			[this](const std::string& task_id, bool success) {
+				implement_->endTask(task_id, success);
+			},
+			[this](const std::string& task_id,
+			       const std::string& capability,
+			       const std::string& operation,
+			       const nlohmann::json& params) {
+				return implement_->callCapability(task_id, capability, operation, params);
+			});
+	auto grpc_status = implement_->vm_channel_grpc_server_->start(kVmChannelGrpcListenAddress);
+	if (!grpc_status.ok()) {
+		LOG_WARN("vm_channel grpc: server start failed: {}", grpc_status.message);
+		implement_->vm_channel_grpc_server_.reset();
+	} else {
+		implement_->vm_channel_grpc_bridge_server_ = vmm::createVsockBridgeServer(
+			[this](bool connected) {
+				implement_->onChannelConnectionChanged("vm_channel_grpc_bridge", connected);
+			});
+
+		GUID runtime_id{};
+		if (vmm::discoverWsl2VmId(&runtime_id)) {
+			implement_->vm_channel_grpc_bridge_server_->setVmId(&runtime_id);
+		} else {
+			LOG_WARN("vm_channel grpc bridge: discoverWsl2VmId failed, fallback to wildcard bind");
+		}
+
+		auto bridge_status = implement_->vm_channel_grpc_bridge_server_->start(
+			kVmChannelGrpcVsockPort, "127.0.0.1", kVmChannelGrpcLocalPort);
+		if (!bridge_status.ok()) {
+			LOG_WARN("vm_channel grpc bridge: start failed: {}", bridge_status.message);
+			implement_->vm_channel_grpc_bridge_server_.reset();
+			implement_->vm_channel_grpc_server_->stop();
+			implement_->vm_channel_grpc_server_.reset();
+		} else {
+			LOG_INFO("vm_channel grpc bridge: listening on vsock port {} -> 127.0.0.1:{}",
+			         kVmChannelGrpcVsockPort,
+			         kVmChannelGrpcLocalPort);
+		}
+	}
+
 	implement_->config_ = config;
 
 	if (config.vmm_auto_start) {
@@ -990,7 +1049,10 @@ void Daemon::stop()
 
 	if (!was_running &&
 	    implement_->health_stop_event_ == INVALID_HANDLE_VALUE &&
-	    implement_->gateway_host_server_ == nullptr) {
+	    implement_->gateway_host_server_ == nullptr &&
+	    implement_->vm_channel_grpc_server_ == nullptr &&
+	    implement_->vm_channel_grpc_bridge_server_ == nullptr &&
+	    implement_->vm_gateway_vsock_server_ == nullptr) {
 		return;
 	}
 
@@ -1004,6 +1066,14 @@ void Daemon::stop()
 	if (implement_->vm_gateway_vsock_server_) {
 		implement_->vm_gateway_vsock_server_->stop();
 		implement_->vm_gateway_vsock_server_.reset();
+	}
+	if (implement_->vm_channel_grpc_bridge_server_) {
+		implement_->vm_channel_grpc_bridge_server_->stop();
+		implement_->vm_channel_grpc_bridge_server_.reset();
+	}
+	if (implement_->vm_channel_grpc_server_) {
+		implement_->vm_channel_grpc_server_->stop();
+		implement_->vm_channel_grpc_server_.reset();
 	}
 	if (implement_->gateway_host_server_) {
 		implement_->gateway_host_server_->stop();

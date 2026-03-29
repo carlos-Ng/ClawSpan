@@ -11,6 +11,78 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# ─── Third-party: gRPC / Protobuf ────────────────────────────────────────────
+
+set(gRPC_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(gRPC_INSTALL OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_CSHARP_EXT OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_GRPC_CSHARP_PLUGIN OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_GRPC_NODE_PLUGIN OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_GRPC_PHP_PLUGIN OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_GRPC_PYTHON_PLUGIN OFF CACHE BOOL "" FORCE)
+set(gRPC_BUILD_GRPC_RUBY_PLUGIN OFF CACHE BOOL "" FORCE)
+set(gRPC_MSVC_STATIC_RUNTIME OFF CACHE BOOL "" FORCE)
+set(ABSL_MSVC_STATIC_RUNTIME OFF CACHE BOOL "" FORCE)
+set(protobuf_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(protobuf_INSTALL OFF CACHE BOOL "" FORCE)
+set(protobuf_MSVC_STATIC_RUNTIME OFF CACHE BOOL "" FORCE)
+if(MSVC)
+    # Use a shared CRT across EXE and plugin DLLs to avoid cross-module heap issues.
+    # Static CRT (/MT,/MTd) gives each module its own heap and can trigger debug_heap
+    # assertions when memory crosses DLL boundaries.
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /FS")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FS")
+endif()
+set(CLAWSPAN_PREV_CXX_STANDARD ${CMAKE_CXX_STANDARD})
+set(CMAKE_CXX_STANDARD 17)
+add_subdirectory(third_party/grpc EXCLUDE_FROM_ALL)
+set(CMAKE_CXX_STANDARD ${CLAWSPAN_PREV_CXX_STANDARD})
+if(MSVC AND TARGET grpc)
+    set_property(TARGET grpc PROPERTY CXX_STANDARD 17)
+    target_compile_options(grpc PRIVATE /std:c++17 /Z7 /FS /MP1)
+endif()
+
+set(CLAWSPAN_VM_CHANNEL_PROTO "${CMAKE_SOURCE_DIR}/proto/vm_channel.proto")
+set(CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR "${CMAKE_BINARY_DIR}/generated/vm_channel")
+file(MAKE_DIRECTORY "${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}")
+
+set(CLAWSPAN_VM_CHANNEL_PROTO_SRCS
+    "${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}/vm_channel.pb.cc"
+    "${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}/vm_channel.grpc.pb.cc"
+)
+set(CLAWSPAN_VM_CHANNEL_PROTO_HDRS
+    "${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}/vm_channel.pb.h"
+    "${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}/vm_channel.grpc.pb.h"
+)
+
+add_custom_command(
+    OUTPUT ${CLAWSPAN_VM_CHANNEL_PROTO_SRCS} ${CLAWSPAN_VM_CHANNEL_PROTO_HDRS}
+    COMMAND protobuf::protoc
+    ARGS
+        "--proto_path=${CMAKE_SOURCE_DIR}/proto"
+        "--cpp_out=${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}"
+        "--grpc_out=${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}"
+        "--plugin=protoc-gen-grpc=$<TARGET_FILE:grpc_cpp_plugin>"
+        "${CLAWSPAN_VM_CHANNEL_PROTO}"
+    DEPENDS
+        "${CLAWSPAN_VM_CHANNEL_PROTO}"
+        protobuf::protoc
+        grpc_cpp_plugin
+)
+
+add_library(clawspan_vm_channel_proto STATIC
+    ${CLAWSPAN_VM_CHANNEL_PROTO_SRCS}
+)
+target_include_directories(clawspan_vm_channel_proto PUBLIC
+    "${CLAWSPAN_VM_CHANNEL_PROTO_GEN_DIR}"
+)
+target_link_libraries(clawspan_vm_channel_proto PUBLIC
+    grpc++
+    protobuf::libprotobuf
+)
+
 # ─── Windows 特定全局设置 ─────────────────────────────────────────────────────
 
 if(WIN32)
@@ -19,10 +91,15 @@ if(WIN32)
     # Windows SDK 最低版本：Windows 10（Named Pipe + UIA 均需要）
     add_compile_definitions(_WIN32_WINNT=0x0A00)
     # 强制 MSVC 以 UTF-8 解析源文件（解决含中文注释的头文件在 GBK 代码页下的解析错误）
-    add_compile_options(/utf-8)
-    # 发行包开箱即用：静态链接 MSVC Runtime，避免用户机器缺失 VC++ Redistributable。
-    # Debug 配置对应 /MTd，Release/RelWithDebInfo/MinSizeRel 对应 /MT。
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    add_compile_options(/utf-8 /FS)
+    # Keep one shared CRT for all modules (exe + plugins + grpc deps).
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+
+    # Bundle VC++ runtime DLLs into dist/bin for zero-install user experience.
+    # This keeps the safer shared CRT model while avoiding user-side redist install.
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
+    set(CMAKE_INSTALL_DEBUG_LIBRARIES FALSE)
+    include(InstallRequiredSystemLibraries)
 endif()
 
 # ─── Third-party: header-only interface targets ───────────────────────────────
@@ -96,12 +173,14 @@ target_link_libraries(clawspan_audit PUBLIC
 
 add_library(clawspan_vm_channel STATIC
     daemon-service/vm_channel/gateway/gateway_host_server.cc
+    daemon-service/vm_channel/grpc/vm_channel_grpc_server.cc
 )
 target_include_directories(clawspan_vm_channel PUBLIC
     ${CMAKE_SOURCE_DIR}/daemon-service
 )
 target_link_libraries(clawspan_vm_channel PUBLIC
     clawspan_audit
+    clawspan_vm_channel_proto
     clawspan_headers
 )
 
@@ -155,6 +234,20 @@ target_include_directories(security_filter PRIVATE
     ${CMAKE_SOURCE_DIR}/daemon-service/security/filter
 )
 target_link_libraries(security_filter PRIVATE clawspan_core clawspan_headers)
+set_target_properties(security_filter PROPERTIES
+    OUTPUT_NAME  "security_filter"
+    # Keep plugin outputs in one directory for dev-mode config loading.
+    LIBRARY_OUTPUT_DIRECTORY                "${CMAKE_BINARY_DIR}/daemon-service"
+    RUNTIME_OUTPUT_DIRECTORY                "${CMAKE_BINARY_DIR}/daemon-service"
+    LIBRARY_OUTPUT_DIRECTORY_DEBUG          "${CMAKE_BINARY_DIR}/daemon-service"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG          "${CMAKE_BINARY_DIR}/daemon-service"
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE        "${CMAKE_BINARY_DIR}/daemon-service"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE        "${CMAKE_BINARY_DIR}/daemon-service"
+    LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL     "${CMAKE_BINARY_DIR}/daemon-service"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL     "${CMAKE_BINARY_DIR}/daemon-service"
+    LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/daemon-service"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/daemon-service"
+)
 
 # ─── Daemon executable ───────────────────────────────────────────────────────
 
@@ -251,6 +344,18 @@ add_custom_target(dist
     COMMENT "Populating dist/ (bin/exe, modules/dll, config/toml)"
     DEPENDS claw_span_service clawspan_vmm_exe capability_ax security_filter
 )
+
+if(WIN32 AND CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
+    foreach(runtime_dll IN LISTS CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
+        add_custom_command(TARGET dist POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${runtime_dll}"
+                "${CLAWSPAN_DIST_DIR}/bin"
+            COMMENT "Copying VC++ runtime: ${runtime_dll}"
+            VERBATIM
+        )
+    endforeach()
+endif()
 
 if(DOTNET_EXECUTABLE)
     add_custom_command(TARGET dist POST_BUILD

@@ -9,8 +9,8 @@ thread_pool_size = 4
 log_level        = "debug"
 
 # DLL 所在目录，claw_span_service 从此目录按 "{name}.dll" 推导路径
-# dist 目标已将所有 DLL 集中到此目录
-module_dir = "build\\modules"
+# 开发模式下 capability/security 模块均输出到 build/daemon-service/
+module_dir = "build\\daemon-service"
 
 # ── UIService (UI 事件通道) ──────────────────────────────────────────────────
 

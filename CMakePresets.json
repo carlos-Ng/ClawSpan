@@ -1,0 +1,93 @@
+{
+  "version": 10,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "vs-debug",
+      "displayName": "Visual Studio Debug (x64)",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug-daemon",
+      "displayName": "Debug daemon (serialized)",
+      "configurePreset": "vs-debug",
+      "configuration": "Debug",
+      "targets": [
+        "claw_span_service"
+      ],
+      "jobs": 1,
+      "nativeToolOptions": [
+        "/p:UseMultiToolTask=false",
+        "/p:CL_MPCount=1"
+      ]
+    },
+    {
+      "name": "debug-modules",
+      "displayName": "Debug modules (serialized)",
+      "configurePreset": "vs-debug",
+      "configuration": "Debug",
+      "targets": [
+        "capability_ax",
+        "security_filter"
+      ],
+      "jobs": 1,
+      "nativeToolOptions": [
+        "/p:UseMultiToolTask=false",
+        "/p:CL_MPCount=1"
+      ]
+    },
+    {
+      "name": "debug-dist",
+      "displayName": "Debug dist (serialized)",
+      "configurePreset": "vs-debug",
+      "configuration": "Debug",
+      "targets": [
+        "dist"
+      ],
+      "jobs": 1,
+      "nativeToolOptions": [
+        "/p:UseMultiToolTask=false",
+        "/p:CL_MPCount=1"
+      ]
+    },
+    {
+      "name": "release-dist",
+      "displayName": "Release dist (serialized)",
+      "configurePreset": "vs-debug",
+      "configuration": "Release",
+      "targets": [
+        "dist"
+      ],
+      "jobs": 1,
+      "nativeToolOptions": [
+        "/p:UseMultiToolTask=false",
+        "/p:CL_MPCount=1"
+      ]
+    },
+    {
+      "name": "release-package",
+      "displayName": "Release package zip (serialized)",
+      "configurePreset": "vs-debug",
+      "configuration": "Release",
+      "targets": [
+        "release"
+      ],
+      "jobs": 1,
+      "nativeToolOptions": [
+        "/p:UseMultiToolTask=false",
+        "/p:CL_MPCount=1"
+      ]
+    }
+  ]
+}
