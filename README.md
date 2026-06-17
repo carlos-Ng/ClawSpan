@@ -465,9 +465,11 @@ ClawSpan/
 
 ## 赞助商
 
+感谢下列赞助商给予我们的支持
+
 <p align="center">
-  <a href="https://code.cyan-land.com/"><strong>cyan-land｜Codex 专用中转站</strong></a><br>
-  Codex 专用中转站，主打接入稳定、价格划算、小众隐私、安全省心，支持 GPT-5.5、GPT-5.4模型，适合日常开发、团队协作和长期项目工作流。
+  <a href="https://code.cyan-land.com/"><strong>cyan-land｜codex 专用中转站</strong></a><br>
+  codex 专用中转站，主打接入稳定、价格划算、小众隐私、安全省心，支持 GPT-5.5、GPT-5.4模型，适合日常开发、团队协作和长期项目工作流。
 </p>
 
 ---
